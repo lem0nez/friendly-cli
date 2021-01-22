@@ -27,7 +27,8 @@ find_package(Threads REQUIRED)
 # + ------- +
 
 set(SOURCES
-    src/terminal.cpp)
+    src/terminal.cpp
+    src/theme.cpp)
 
 # Include the install directory variables (CMAKE_INSTALL_<dir>).
 include(GNUInstallDirs)

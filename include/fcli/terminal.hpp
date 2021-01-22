@@ -23,8 +23,7 @@
 #include <unistd.h>
 
 namespace fcli {
-  class Terminal {
-  public:
+  struct Terminal {
     enum class ColorsSupport {
       HAS_8_COLORS,
       HAS_256_COLORS
@@ -47,27 +46,21 @@ namespace fcli {
 
     [[nodiscard]] inline auto get_out_file_desc() const
         { return m_out_file_desc; }
-    [[nodiscard]] inline auto get_name() const { return m_name; }
-
     inline void set_out_file_desc(int out_file_desc)
         { m_out_file_desc = out_file_desc; }
+
+    [[nodiscard]] inline auto get_name() const { return m_name; }
     inline void set_name(std::string_view name) { m_name = name; }
 
     [[nodiscard]] static inline auto get_cached_colors_support()
         { return s_cached_colors_support; }
-    [[nodiscard]] static inline auto get_cached_columns_count()
-        { return s_cached_columns_count; }
-
     static inline void cache_colors_support(ColorsSupport colors_support)
         { s_cached_colors_support = colors_support; }
-    static inline void cache_columns_count(unsigned short columns_count)
-        { s_cached_columns_count = columns_count; }
 
   private:
     int m_out_file_desc;
     std::string_view m_name;
 
     static inline std::optional<ColorsSupport> s_cached_colors_support;
-    static inline std::optional<unsigned short> s_cached_columns_count;
   };
 } // Namespace fcli.
