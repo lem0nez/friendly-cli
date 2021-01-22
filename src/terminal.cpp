@@ -15,4 +15,48 @@
  * limitations under the License.
  */
 
+#include <array>
+#include <sys/ioctl.h>
+
 #include "fcli/terminal.hpp"
+
+using namespace fcli;
+using namespace std;
+
+auto Terminal::get_columns_count() const -> unsigned short {
+  struct winsize size{};
+  const int err = ioctl(m_out_file_desc, TIOCGWINSZ, &size);
+
+  if (err != 0) {
+    throw runtime_error("couldn't get terminal columns count");
+  }
+  return size.ws_col;
+}
+
+auto Terminal::find_out_supported_colors() const -> optional<ColorsSupport> {
+  optional<ColorsSupport> colors_support;
+
+  if (m_name.empty()) {
+    return colors_support;
+  }
+
+  constexpr size_t COLORED_TERMS_COUNT = 14;
+  constexpr array<string_view, COLORED_TERMS_COUNT> colored_terms{
+    "ansi", "color", "console", "cygwin", "gnome", "konsole", "kterm",
+    "linux", "msys", "putty", "rxvt", "screen","vt100", "xterm"
+  };
+
+  for (auto& t : colored_terms) {
+    if (m_name.find(t) == 0) {
+      // Name starts with t.
+      colors_support = ColorsSupport::HAS_8_COLORS;
+
+      if (m_name.find(string(t) + "-256") != string_view::npos) {
+        colors_support = ColorsSupport::HAS_256_COLORS;
+      }
+      break;
+    }
+  }
+
+  return colors_support;
+}

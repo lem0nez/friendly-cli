@@ -9,6 +9,10 @@ easy-to-use API for user interaction through CLI"
 
 option(BUILD_TESTING "Build the unit tests (doctest framework required)" ON)
 
+if(NOT (UNIX AND NOT APPLE))
+  message(FATAL_ERROR "Only Linux is supported!")
+endif()
+
 # Require exact the C++17 library.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,9 +26,6 @@ find_package(Threads REQUIRED)
 # + Library +
 # + ------- +
 
-set(HEADERS
-    include/fcli/terminal.hpp)
-
 set(SOURCES
     src/terminal.cpp)
 
@@ -34,14 +35,12 @@ include(GNUInstallDirs)
 add_library(fcli ${SOURCES})
 set_target_properties(fcli PROPERTIES
                       VERSION ${PROJECT_VERSION}
-                      SOVERSION ${PROJECT_VERSION_MAJOR}
-                      PUBLIC_HEADER ${HEADERS})
+                      SOVERSION ${PROJECT_VERSION_MAJOR})
 target_include_directories(fcli PRIVATE include)
 target_link_libraries(fcli PRIVATE Threads::Threads)
 
-install(TARGETS fcli
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fcli)
+install(TARGETS fcli LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY include/fcli DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # @ONLY prevents expanding variables of the form ${VAR}.
 configure_file(fcli.pc.in fcli.pc @ONLY)
@@ -53,7 +52,8 @@ install(FILES ${CMAKE_BINARY_DIR}/fcli.pc
 # + ----- +
 
 set(TEST_SOURCES
-    test/main.cpp)
+    test/main.cpp
+    test/terminal.cpp)
 
 if(BUILD_TESTING)
     find_package(doctest REQUIRED)

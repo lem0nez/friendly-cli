@@ -11,5 +11,4 @@ Checks:
   portability-*,
   readability-*,
 
-  -modernize-use-nodiscard,
   -readability-isolate-declaration
