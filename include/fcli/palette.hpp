@@ -15,14 +15,21 @@
  * limitations under the License.
  */
 
-#include "doctest/doctest.h"
-#include "fcli/theme.hpp"
+#pragma once
 
-using namespace fcli;
+namespace fcli {
+  struct Palette {
+    struct Color {
+      unsigned short ascii_code;
+      // Whether text should be inverted when using a color as background.
+      bool invert_text;
 
-TEST_CASE("get_palette throws exception") {
-  CHECK_THROWS_MESSAGE(
-      // Check for exception only.
-      static_cast<void>(Theme::get_palette(Theme::Name::_USER)),
-      "invalid theme index");
-}
+      static constexpr unsigned short INVALID_ASCII_CODE = 256;
+    };
+
+    Color
+        red, green, yellow,
+        blue, magenta, cyan,
+        dim;
+  };
+} // Namespace fcli.

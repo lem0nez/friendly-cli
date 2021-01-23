@@ -28,6 +28,7 @@ find_package(Threads REQUIRED)
 
 set(SOURCES
     src/terminal.cpp
+    src/text.cpp
     src/theme.cpp)
 
 # Include the install directory variables (CMAKE_INSTALL_<dir>).
@@ -55,6 +56,7 @@ install(FILES ${CMAKE_BINARY_DIR}/fcli.pc
 set(TEST_SOURCES
     test/main.cpp
     test/terminal.cpp
+    test/text.cpp
     test/theme.cpp)
 
 if(BUILD_TESTING)

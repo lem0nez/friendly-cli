@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include "palette.hpp"
 
 namespace fcli {
   class Theme {
@@ -35,28 +36,15 @@ namespace fcli {
       _USER
     };
 
-    struct Palette {
-      struct Color {
-        unsigned short ascii_code;
-        // Whether text should be inverted when using a color as background.
-        bool invert_text;
-      };
-
-      Color
-          red, green, yellow,
-          blue, magenta, cyan,
-          dim;
-    };
-
-    static auto get_palette(Name) -> Palette;
-    static inline auto get_palette() { return s_palette; }
-    static inline auto get_theme() { return s_theme; }
+    [[nodiscard]] static auto get_palette(Name) -> Palette;
+    [[nodiscard]] static inline auto get_palette() { return s_palette; }
+    [[nodiscard]] static inline auto get_theme() { return s_theme; }
 
     static void set_pallete(const Palette&);
     static void set_theme(Name);
 
   private:
-    static auto get_default_palette() noexcept -> Palette;
+    [[nodiscard]] static auto get_default_palette() noexcept -> Palette;
 
     static inline Name s_theme = Name::DEFAULT;
     static inline Palette s_palette = get_default_palette();
