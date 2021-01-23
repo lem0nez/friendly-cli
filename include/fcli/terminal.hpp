@@ -23,7 +23,8 @@
 #include <unistd.h>
 
 namespace fcli {
-  struct Terminal {
+  class Terminal {
+  public:
     enum class ColorsSupport {
       HAS_8_COLORS,
       HAS_256_COLORS
@@ -36,7 +37,7 @@ namespace fcli {
         m_out_file_desc(out_file_desc), m_name(name) {}
 
     [[nodiscard]] auto get_columns_count() const -> unsigned short;
-    // Try to find out how many colors a terminal supports.
+    // Try to find out how many colors terminal supports.
     [[nodiscard]] auto find_out_supported_colors() const ->
         std::optional<ColorsSupport>;
 

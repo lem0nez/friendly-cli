@@ -18,7 +18,8 @@
 #pragma once
 
 namespace fcli {
-  struct Theme {
+  class Theme {
+  public:
     enum class Name {
       // For terminals that only support 8 colors. Dark background implied.
       DEFAULT,
@@ -29,22 +30,16 @@ namespace fcli {
       ARCTIC_DARK,
 
       // Number of themes.
-      _COUNT
+      _COUNT,
+      // Manually implemented palette.
+      _USER
     };
 
-    // Change current theme.
-    static void set(Name);
-
-  private:
     struct Palette {
       struct Color {
         unsigned short ascii_code;
-        bool
-            // Whether text should be inverted
-            // if a color used as normal background.
-            invert_text_if_normal_back,
-            // Same as previous, but background color is strong.
-            invert_text_if_strong_back;
+        // Whether text should be inverted when using a color as background.
+        bool invert_text;
       };
 
       Color
@@ -53,7 +48,17 @@ namespace fcli {
           dim;
     };
 
+    static auto get_palette(Name) -> Palette;
+    static inline auto get_palette() { return s_palette; }
+    static inline auto get_theme() { return s_theme; }
+
+    static void set_pallete(const Palette&);
+    static void set_theme(Name);
+
+  private:
     static auto get_default_palette() noexcept -> Palette;
+
+    static inline Name s_theme = Name::DEFAULT;
     static inline Palette s_palette = get_default_palette();
   };
 } // Namespace fcli.

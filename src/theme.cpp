@@ -23,51 +23,51 @@ using namespace std;
 
 auto Theme::get_default_palette() noexcept -> Palette {
   return {
-    {1, false, false},
-    {2, false, true},
-    {3, false, true},
-    {4, false, false},
-    {5, false, false},
-    {6, false, true},
+    {1, false}, {2, false}, {3, false},
+    {4, false}, {5, false}, {6, false},
     {/* Dim color doesn't exist in the 8 color palette. */}
   };
 }
 
-void Theme::set(Name t_name) {
+auto Theme::get_palette(Name t_name) -> Palette {
+  const auto theme_idx = static_cast<size_t>(t_name);
+
+  if (theme_idx >= static_cast<size_t>(Name::_COUNT)) {
+    throw runtime_error("invalid theme index");
+  }
+
   constexpr auto THEMES_COUNT = static_cast<size_t>(Name::_COUNT);
   const array<Palette, THEMES_COUNT> palettes{{
     get_default_palette(),
     // Material Light.
     {
-      {196, true, true},
-      {35, true, true},
-      {214, false, false},
-      {33, true, true},
-      {207, true, true},
-      {45, false, false},
-      {249, false, false}
+      {196, true}, {35, true}, {214, false},
+      {33, true}, {207, true}, {45, false},
+      {249, false}
     },
     // Material Dark.
     {
-      {202, false, false},
-      {41, true, true},
-      {220, true, true},
-      {75, false, false},
-      {207, true, true},
-      {51, true, true},
-      {246, false, false}
+      {202, false}, {41, true}, {220, true},
+      {75, false}, {207, true}, {51, true},
+      {246, false}
     },
     // Arctic Dark.
     {
-      {167, false, false},
-      {150, true, true},
-      {222, true, true},
-      {110, true, true},
-      {182, true, true},
-      {116, true, true},
-      {249, true, true}
+      {167, false}, {150, true}, {222, true},
+      {110, true}, {182, true}, {116, true},
+      {249, true}
     }
   }};
 
-  s_palette = palettes.at(static_cast<size_t>(t_name));
+  return palettes.at(theme_idx);
+}
+
+void Theme::set_theme(Name t_name) {
+  s_palette = get_palette(t_name);
+  s_theme = t_name;
+}
+
+void Theme::set_pallete(const Palette& t_palette) {
+  s_palette = t_palette;
+  s_theme = Name::_USER;
 }
