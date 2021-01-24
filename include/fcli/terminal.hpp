@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <cstdlib>
 #include <optional>
 #include <string>
 #include <unistd.h>
@@ -33,7 +32,7 @@ namespace fcli {
     explicit Terminal(
         // Pass an OPENED file descriptor of output.
         int out_file_desc = STDOUT_FILENO,
-        std::string_view name = std::getenv("TERM")):
+        std::string_view name = getenv("TERM")):
         m_out_file_desc(out_file_desc), m_name(name) {}
 
     [[nodiscard]] auto get_columns_count() const -> unsigned short;
@@ -59,8 +58,11 @@ namespace fcli {
         { s_cached_colors_support = colors_support; }
 
   private:
+    // Null safety version of standard function.
+    [[nodiscard]] static auto getenv(std::string_view) -> std::string;
+
     int m_out_file_desc;
-    std::string_view m_name;
+    std::string m_name;
 
     static inline std::optional<ColorsSupport> s_cached_colors_support;
   };

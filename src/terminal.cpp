@@ -16,6 +16,7 @@
  */
 
 #include <array>
+#include <cstdlib>
 #include <sys/ioctl.h>
 
 #include "fcli/terminal.hpp"
@@ -46,12 +47,12 @@ auto Terminal::find_out_supported_colors() const -> optional<ColorsSupport> {
     "linux", "msys", "putty", "rxvt", "screen","vt100", "xterm"
   };
 
-  for (auto& t : colored_terms) {
+  for (const auto& t : colored_terms) {
     if (m_name.find(t) == 0) {
       // Name starts with t.
       colors_support = ColorsSupport::HAS_8_COLORS;
 
-      if (m_name.find(string(t) + "-256") != string_view::npos) {
+      if (m_name.find(string(t) + "-256") != string::npos) {
         colors_support = ColorsSupport::HAS_256_COLORS;
       }
       break;
@@ -59,4 +60,13 @@ auto Terminal::find_out_supported_colors() const -> optional<ColorsSupport> {
   }
 
   return colors_support;
+}
+
+auto Terminal::getenv(string_view t_name) -> string {
+  const auto val = std::getenv(string(t_name).c_str());
+
+  if (val == nullptr) {
+    return {};
+  }
+  return val;
 }
