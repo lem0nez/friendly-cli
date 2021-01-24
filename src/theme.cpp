@@ -63,12 +63,12 @@ auto Theme::get_palette(Name t_name) -> Palette {
   return palettes.at(theme_idx);
 }
 
-void Theme::set_theme(Name t_name) {
-  s_palette = get_palette(t_name);
-  s_theme = t_name;
-}
-
 void Theme::set_pallete(const Palette& t_palette) {
   s_palette = t_palette;
   s_theme = Name::_USER;
+}
+
+void Theme::set_theme(Name t_name) {
+  s_palette = get_palette(t_name);
+  s_theme = t_name;
 }

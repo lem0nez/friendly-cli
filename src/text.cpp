@@ -29,7 +29,7 @@ void Text::format(
     Palette t_palette) {
 
   const bool colors_supported = t_colors_support.has_value();
-  // Using string instead of string_view to keep the binary plus operator.
+  // Using string instead of string_view to use the binary plus operator.
   static const string
       esc_seq_start = "\x1b[",
       esc_seq_end = "m";
@@ -51,7 +51,7 @@ void Text::format(
     if (colors_supported) {
       esc_seq = esc_seq_start + to_string(style) + esc_seq_end;
     }
-    replace_all(t_str, "<"s + letter + '>', esc_seq);
+    replace_specifier(t_str, "<"s + letter + '>', esc_seq);
   }
 
   /*
@@ -82,10 +82,7 @@ void Text::format(
     }
   }
 
-  string
-      foreground_esc_seq,
-      background_esc_seq;
-
+  string foreground_esc_seq, background_esc_seq;
   if (use_8_color_palette) {
     foreground_esc_seq = "3";
     background_esc_seq = "4";
@@ -101,24 +98,24 @@ void Text::format(
     string esc_seq;
 
     // Foreground.
-
     if (!remove) {
       esc_seq = esc_seq_start + foreground_esc_seq +
           color_code_str + esc_seq_end;
     }
-    replace_all(t_str, "~"s + letter + '~', esc_seq);
+    replace_specifier(t_str, "~"s + letter + '~', esc_seq);
 
     // Background.
-
-    const auto upper_letter = static_cast<char>(toupper(letter));
+    const auto upper_letter =
+        // Letter should be converted to unsigned
+        // char because cctype functions require it.
+        static_cast<char>(toupper(static_cast<unsigned char>(letter)));
     if (!remove) {
       esc_seq = esc_seq_start + background_esc_seq +
           color_code_str + esc_seq_end;
     }
-    replace_all(t_str, "~"s + upper_letter + "!~", esc_seq);
+    replace_specifier(t_str, "~"s + upper_letter + "!~", esc_seq);
 
     // Background with automatic foreground.
-
     if (!remove) {
       esc_seq = esc_seq_start;
       if (color->invert_text) {
@@ -128,7 +125,7 @@ void Text::format(
       }
       esc_seq += color_code_str + esc_seq_end;
     }
-    replace_all(t_str, "~"s + upper_letter + '~', esc_seq);
+    replace_specifier(t_str, "~"s + upper_letter + '~', esc_seq);
   }
 }
 
@@ -142,33 +139,34 @@ auto Text::format_copy(
 };
 
 auto Text::format_message(
-    Message t_message, string_view str,
+    Message t_type, string_view t_message,
     const optional<Terminal::ColorsSupport>& t_colors_support,
     const Palette& t_palette) -> string {
 
   constexpr auto PREFIXES_COUNT = static_cast<size_t>(Message::_COUNT);
-  static const array<string_view*, PREFIXES_COUNT> prefixes{
+  static constexpr array<const string_view*, PREFIXES_COUNT> prefixes{
     &s_error_prefix, &s_warning_prefix, &s_note_prefix
   };
 
-  const string prefix(*prefixes.at(static_cast<size_t>(t_message)));
-  return format_copy(prefix + string(str), t_colors_support, t_palette);
+  const string prefix(*prefixes.at(static_cast<size_t>(t_type)));
+  return format_copy(prefix + string(t_message), t_colors_support, t_palette);
 }
 
-void Text::replace_all(string& t_str, string_view t_from, string_view t_to) {
+void Text::replace_specifier(string& t_str,
+    string_view t_from, string_view t_to) {
   if (t_from.empty()) {
     return;
   }
 
   size_t start_pos = 0;
   while ((start_pos = t_str.find(t_from, start_pos)) != string::npos) {
+    if (start_pos != 0 && t_str[start_pos - 1] == '\\') {
+      // Skip escaped specifier.
+      t_str.erase(start_pos - 1, 1);
+      continue;
+    }
+
     t_str.replace(start_pos, t_from.length(), t_to);
     start_pos += t_to.length();
   }
-}
-
-auto Text::replace_all_copy(string t_str,
-    string_view t_from, string_view t_to) -> string {
-  replace_all(t_str, t_from, t_to);
-  return t_str;
 }

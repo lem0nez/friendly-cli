@@ -21,8 +21,5 @@
 using namespace fcli;
 
 TEST_CASE("get_palette throws exception") {
-  CHECK_THROWS_MESSAGE(
-      // Check for exception only.
-      static_cast<void>(Theme::get_palette(Theme::Name::_USER)),
-      "invalid theme index");
+  CHECK_THROWS(static_cast<void>(Theme::get_palette(Theme::Name::_USER)));
 }
