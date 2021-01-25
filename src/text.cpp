@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-#include <array>
 #include <map>
-
 #include "fcli/text.hpp"
 
 using namespace fcli;
@@ -27,6 +25,7 @@ void Text::format(
     string& t_str,
     const optional<Terminal::ColorsSupport>& t_colors_support,
     Palette t_palette) {
+  using namespace string_literals;
 
   const bool colors_supported = t_colors_support.has_value();
   // Using string instead of string_view to use the binary plus operator.
@@ -138,18 +137,27 @@ auto Text::format_copy(
   return t_str;
 };
 
-auto Text::format_message(
-    Message t_type, string_view t_message,
-    const optional<Terminal::ColorsSupport>& t_colors_support,
-    const Palette& t_palette) -> string {
+auto Text::get_message_prefix(Message t_message) -> string {
+  init_prefixes_if_need();
+  return s_prefixes.at(static_cast<size_t>(t_message));
+}
 
-  constexpr auto PREFIXES_COUNT = static_cast<size_t>(Message::_COUNT);
-  static constexpr array<const string_view*, PREFIXES_COUNT> prefixes{
-    &s_error_prefix, &s_warning_prefix, &s_note_prefix
-  };
+void Text::set_message_prefix(Message t_message, string_view t_prefix) {
+  init_prefixes_if_need();
+  s_prefixes.at(static_cast<size_t>(t_message)) = t_prefix;
+}
 
-  const string prefix(*prefixes.at(static_cast<size_t>(t_type)));
-  return format_copy(prefix + string(t_message), t_colors_support, t_palette);
+void Text::init_prefixes_if_need() {
+  static bool initialized;
+
+  if (!initialized) {
+    s_prefixes = {
+      "<b>~r~Error<r> ~d~|<r> ",
+      "<b>~y~Warning<r> ~d~|<r> ",
+      "<b>~c~Note<r> ~d~|<r> "
+    };
+    initialized = true;
+  }
 }
 
 void Text::replace_specifier(string& t_str,

@@ -21,6 +21,8 @@
 using namespace fcli;
 
 TEST_CASE("Format string") {
+  using namespace fcli::literals;
+
   CHECK(Text::remove_specifiers_copy(
         "<r>\\<b><U>~r~~g!~~Y~~B!~~!M~") == "<b><U>~g!~~!M~");
 
@@ -31,6 +33,6 @@ TEST_CASE("Format string") {
         Theme::get_palette(Theme::Name::MATERIAL_LIGHT)) ==
         "\x1b[7mt\x1b[36mes\x1b[41mt\x1b[42m");
 
-  using namespace fcli::literals;
-  CHECK("test"_err == "Error | test");
+  Text::set_message_prefix(Text::Message::ERROR, "prefix ");
+  CHECK("test"_err == "prefix test");
 }

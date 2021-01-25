@@ -46,7 +46,7 @@ namespace fcli {
   private:
     [[nodiscard]] static auto get_default_palette() noexcept -> Palette;
 
-    static inline Name s_theme = Name::DEFAULT;
-    static inline Palette s_palette = get_default_palette();
+    static inline Name s_theme{Name::DEFAULT};
+    static inline Palette s_palette{get_default_palette()};
   };
 } // Namespace fcli.
