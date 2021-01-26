@@ -17,10 +17,10 @@
 
 #pragma once
 
-#include <array>
 #include <optional>
 #include <string>
 
+#include "internal/enum_array.hpp"
 #include "terminal.hpp"
 #include "theme.hpp"
 
@@ -86,9 +86,7 @@ namespace fcli {
     // them because string can throws exception.
     static void init_prefixes_if_need();
 
-    static constexpr auto PREFIXES_COUNT =
-        static_cast<std::size_t>(Message::_COUNT);
-    static inline std::array<std::string, PREFIXES_COUNT> s_prefixes;
+    static inline internal::EnumArray<Message, std::string> s_prefixes;
   };
 
   namespace literals {

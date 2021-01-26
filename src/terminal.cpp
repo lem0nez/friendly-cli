@@ -29,7 +29,7 @@ auto Terminal::get_columns_count() const -> unsigned short {
   const int err = ioctl(m_out_file_desc, TIOCGWINSZ, &size);
 
   if (err != 0) {
-    throw runtime_error("couldn't get terminal columns count");
+    throw runtime_error("couldn't get terminal width");
   }
   return size.ws_col;
 }

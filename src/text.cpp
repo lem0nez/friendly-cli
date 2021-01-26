@@ -139,23 +139,23 @@ auto Text::format_copy(
 
 auto Text::get_message_prefix(Message t_message) -> string {
   init_prefixes_if_need();
-  return s_prefixes.at(static_cast<size_t>(t_message));
+  return s_prefixes.get(t_message);
 }
 
 void Text::set_message_prefix(Message t_message, string_view t_prefix) {
   init_prefixes_if_need();
-  s_prefixes.at(static_cast<size_t>(t_message)) = t_prefix;
+  s_prefixes.set(t_message, string(t_prefix));
 }
 
 void Text::init_prefixes_if_need() {
   static bool initialized;
 
   if (!initialized) {
-    s_prefixes = {
+    s_prefixes.set({
       "<b>~r~Error<r> ~d~|<r> ",
       "<b>~y~Warning<r> ~d~|<r> ",
       "<b>~c~Note<r> ~d~|<r> "
-    };
+    });
     initialized = true;
   }
 }

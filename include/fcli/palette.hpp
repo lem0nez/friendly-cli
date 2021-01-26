@@ -18,6 +18,7 @@
 #pragma once
 
 namespace fcli {
+  // Used by text formatter.
   struct Palette {
     struct Color {
       unsigned short ascii_code;

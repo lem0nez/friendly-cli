@@ -27,6 +27,7 @@ find_package(Threads REQUIRED)
 # + ------- +
 
 set(SOURCES
+    # src/progress.cpp
     src/terminal.cpp
     src/text.cpp
     src/theme.cpp)
@@ -56,8 +57,7 @@ install(FILES ${CMAKE_BINARY_DIR}/fcli.pc
 set(TEST_SOURCES
     test/main.cpp
     test/terminal.cpp
-    test/text.cpp
-    test/theme.cpp)
+    test/text.cpp)
 
 if(BUILD_TESTING)
     find_package(doctest REQUIRED)

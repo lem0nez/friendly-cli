@@ -22,9 +22,7 @@ using namespace fcli;
 using namespace std;
 
 TEST_CASE("Detect colors support") {
-  Terminal term;
-
-  term.set_name("");
+  Terminal term("");
   CHECK_FALSE(term.find_out_supported_colors().has_value());
 
   term.set_name("linux");

@@ -30,7 +30,6 @@ namespace fcli {
       MATERIAL_DARK,
       ARCTIC_DARK,
 
-      // Number of themes.
       _COUNT,
       // Manually implemented palette.
       _USER

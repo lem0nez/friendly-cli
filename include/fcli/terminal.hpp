@@ -29,14 +29,16 @@ namespace fcli {
       HAS_256_COLORS
     };
 
-    explicit Terminal(
-        // Pass an OPENED file descriptor of output.
-        int out_file_desc = STDOUT_FILENO,
-        std::string_view name = getenv("TERM")):
+    Terminal() = default;
+    // Pass OPENED file descriptor, that used to get terminal width.
+    explicit Terminal(int out_file_desc): m_out_file_desc(out_file_desc) {}
+    // Name used to find out how many colors terminal supports.
+    explicit Terminal(std::string_view name): m_name(name) {}
+    Terminal(int out_file_desc, std::string_view name):
         m_out_file_desc(out_file_desc), m_name(name) {}
 
     [[nodiscard]] auto get_columns_count() const -> unsigned short;
-    // Try to find out how many colors terminal supports.
+    // TRY to find out how many colors terminal supports.
     [[nodiscard]] auto find_out_supported_colors() const ->
         std::optional<ColorsSupport>;
 
@@ -61,8 +63,8 @@ namespace fcli {
     // Null safety version of standard function.
     [[nodiscard]] static auto getenv(std::string_view) -> std::string;
 
-    int m_out_file_desc;
-    std::string m_name;
+    int m_out_file_desc{STDOUT_FILENO};
+    std::string m_name{getenv("TERM")};
 
     static inline std::optional<ColorsSupport> s_cached_colors_support;
   };

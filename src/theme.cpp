@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-#include <array>
+#include "fcli/internal/enum_array.hpp"
 #include "fcli/theme.hpp"
 
 using namespace fcli;
-using namespace std;
 
 auto Theme::get_default_palette() noexcept -> Palette {
   return {
@@ -31,14 +30,9 @@ auto Theme::get_default_palette() noexcept -> Palette {
 }
 
 auto Theme::get_palette(Name t_name) -> Palette {
-  const auto theme_idx = static_cast<size_t>(t_name);
+  using namespace fcli::internal;
 
-  if (theme_idx >= static_cast<size_t>(Name::_COUNT)) {
-    throw runtime_error("invalid theme index");
-  }
-
-  constexpr auto THEMES_COUNT = static_cast<size_t>(Name::_COUNT);
-  const array<Palette, THEMES_COUNT> palettes{{
+  const EnumArray<Name, Palette> palettes({
     get_default_palette(),
     // Material Light.
     {
@@ -58,9 +52,8 @@ auto Theme::get_palette(Name t_name) -> Palette {
       {110, true}, {182, true}, {116, true},
       {249, true}
     }
-  }};
-
-  return palettes.at(theme_idx);
+  });
+  return palettes.get(t_name);
 }
 
 void Theme::set_pallete(const Palette& t_palette) {
