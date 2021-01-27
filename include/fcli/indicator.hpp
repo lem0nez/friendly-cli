@@ -17,20 +17,21 @@
 
 #pragma once
 
+#include <chrono>
+#include <forward_list>
+#include <string>
+
 namespace fcli {
-  // Used by text formatter.
-  struct Palette {
-    struct Color {
-      unsigned short ascii_code;
-      // Whether text should be inverted when using a color as background.
-      bool invert_text;
-
-      static constexpr unsigned short INVALID_ASCII_CODE = 256U;
-    };
-
-    Color
-        red, green, yellow,
-        blue, magenta, cyan,
-        dim;
+  // Used by undetermined progress.
+  struct Indicator {
+    std::chrono::milliseconds update_interval;
+    /*
+     * Each frame should be one character size. Using string because char
+     * can't store Unicode characters and wide char type isn't portable.
+     *
+     * Using forward_list because random access to an element doesn't
+     * required and iteration through elements is always from begin to end.
+     */
+    std::forward_list<std::string> frames;
   };
 } // Namespace fcli.

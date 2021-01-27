@@ -17,27 +17,33 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
-#include <utility>
+#include <type_traits>
 
 namespace fcli::internal {
-  // E is enumerator class and V is values type.
-  template<class E, class V, auto size = static_cast<std::size_t>(E::_COUNT)>
+  // E is enumerator class and V is value type.
+  template<class E, class... V>
   class EnumArray {
-    using arr_t = std::array<V, size>;
+    using val_t = typename std::common_type<V...>::type;
+    using arr_t = std::array<val_t, static_cast<std::size_t>(E::_COUNT)>;
 
   public:
     constexpr EnumArray() = default;
-    constexpr explicit EnumArray(arr_t values): m_arr(std::move(values)) {}
+    constexpr explicit EnumArray(V... vals): m_arr{vals...} {}
+    constexpr explicit EnumArray(arr_t orig): m_arr(std::move(orig)) {}
 
-    [[nodiscard]] constexpr auto get(E element) const
-        { return m_arr.at(static_cast<std::size_t>(element)); }
-    [[nodiscard]] constexpr auto operator[](E element) -> V&
-        { return m_arr[static_cast<std::size_t>(element)]; }
+    [[nodiscard]] constexpr auto get(E elem) const
+        { return m_arr.at(static_cast<std::size_t>(elem)); }
+    constexpr void set(E elem, const val_t& val)
+        { m_arr.at(static_cast<std::size_t>(elem)) = val; }
 
-    constexpr void set(const arr_t& values) { m_arr = values; }
-    constexpr void set(E element, const V& val)
-        { m_arr.at(static_cast<std::size_t>(element)) = val; }
+    constexpr auto operator=(const arr_t& orig) -> EnumArray& {
+      m_arr = orig;
+      return *this;
+    }
+    [[nodiscard]] constexpr auto operator[](E elem) -> val_t&
+        { return m_arr[static_cast<std::size_t>(elem)]; }
 
   private:
     arr_t m_arr;

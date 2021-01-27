@@ -46,7 +46,7 @@ namespace fcli {
      * To disable automatic inverting of foreground color when using the
      * background color specifier, add the '!' mark before letter.
      *
-     * To escape specifier, add character '\\' in front of him.
+     * To escape specifier, add escape character '\033' in front of him.
      */
     static void format(
         std::string&,

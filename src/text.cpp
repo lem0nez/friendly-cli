@@ -30,7 +30,7 @@ void Text::format(
   const bool colors_supported = t_colors_support.has_value();
   // Using string instead of string_view to use the binary plus operator.
   static const string
-      esc_seq_start = "\x1b[",
+      esc_seq_start = "\033[",
       esc_seq_end = "m";
 
   /*
@@ -38,10 +38,10 @@ void Text::format(
    */
 
   static const map<char, unsigned short> styles{
-    {'r', 0}, // Reset.
-    {'b', 1}, // Bold.
-    {'u', 4}, // Underline.
-    {'i', 7} // Inverse.
+    {'r', 0U}, // Reset.
+    {'b', 1U}, // Bold.
+    {'u', 4U}, // Underline.
+    {'i', 7U} // Inverse.
   };
 
   for (const auto& [letter, style] : styles) {
@@ -151,11 +151,11 @@ void Text::init_prefixes_if_need() {
   static bool initialized;
 
   if (!initialized) {
-    s_prefixes.set({
+    s_prefixes = {
       "<b>~r~Error<r> ~d~|<r> ",
       "<b>~y~Warning<r> ~d~|<r> ",
       "<b>~c~Note<r> ~d~|<r> "
-    });
+    };
     initialized = true;
   }
 }
@@ -166,11 +166,11 @@ void Text::replace_specifier(string& t_str,
     return;
   }
 
-  size_t start_pos = 0;
+  size_t start_pos = 0U;
   while ((start_pos = t_str.find(t_from, start_pos)) != string::npos) {
-    if (start_pos != 0 && t_str[start_pos - 1] == '\\') {
+    if (start_pos != 0U && t_str[start_pos - 1U] == '\033') {
       // Skip escaped specifier.
-      t_str.erase(start_pos - 1, 1);
+      t_str.erase(start_pos - 1U, 1U);
       continue;
     }
 

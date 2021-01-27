@@ -27,7 +27,7 @@ find_package(Threads REQUIRED)
 # + ------- +
 
 set(SOURCES
-    # src/progress.cpp
+    src/progress.cpp
     src/terminal.cpp
     src/text.cpp
     src/theme.cpp)

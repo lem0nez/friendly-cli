@@ -41,7 +41,7 @@ auto Terminal::find_out_supported_colors() const -> optional<ColorsSupport> {
     return colors_support;
   }
 
-  constexpr size_t COLORED_TERMS_COUNT = 14;
+  constexpr size_t COLORED_TERMS_COUNT = 14U;
   constexpr array<string_view, COLORED_TERMS_COUNT> colored_terms{
     "ansi", "color", "console", "cygwin", "gnome", "konsole", "kterm",
     "linux", "msys", "putty", "rxvt", "screen","vt100", "xterm"
