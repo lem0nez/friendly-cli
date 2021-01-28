@@ -44,7 +44,7 @@ namespace fcli {
      *
      * Background color specifier is uppercase specifier of foreground color.
      * To disable automatic inverting of foreground color when using the
-     * background color specifier, add the '!' mark before letter.
+     * background color specifier, add the '!' mark after letter.
      *
      * To escape specifier, add escape character '\033' in front of him.
      */
@@ -60,9 +60,6 @@ namespace fcli {
             Terminal::get_cached_colors_support(),
         const Palette& = Theme::get_palette()) -> std::string;
 
-    [[nodiscard]] static auto get_message_prefix(Message) -> std::string;
-    static void set_message_prefix(Message, std::string_view);
-
     [[nodiscard]] static inline auto format_message(
         Message type, std::string_view message,
         const std::optional<Terminal::ColorsSupport>& colors_support =
@@ -73,6 +70,9 @@ namespace fcli {
           colors_support, palette);
     }
 
+    [[nodiscard]] static auto get_message_prefix(Message) -> std::string;
+    static void set_message_prefix(Message, std::string_view);
+
     // Just disable colors support to remove specifiers.
     static inline void remove_specifiers(std::string& str) { format(str, {}); }
     [[nodiscard]] static inline auto
@@ -82,8 +82,8 @@ namespace fcli {
   private:
     static void replace_specifier(std::string& str,
         std::string_view from, std::string_view to);
-    // Don't initialize prefixes when declaring
-    // them because string can throws exception.
+    // Don't initialize prefixes when declaring because
+    // string can throws exception that can't be caught.
     static void init_prefixes_if_need();
 
     static inline internal::EnumArray<Message, std::string> s_prefixes;

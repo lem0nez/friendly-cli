@@ -15,24 +15,17 @@
  * limitations under the License.
  */
 
+#include <limits>
+
 #include "doctest/doctest.h"
-#include "fcli/text.hpp"
+#include "fcli/progress.hpp"
 
 using namespace fcli;
+using namespace std;
 
-TEST_CASE("Format string") {
-  using namespace fcli::literals;
+TEST_CASE("Width handling") {
+  CHECK_THROWS_AS(Progress({}, {}, 0U), Progress::no_space_error);
 
-  CHECK(Text::remove_specifiers_copy(
-        "<r>\033<b><U>~r~~g!~~Y~~B!~~!M~") == "<b><U>~g!~~!M~");
-
-  CHECK(Text::format_copy("<i>t~c~e~D~s~R~t~G!~",
-        Terminal::ColorsSupport::HAS_8_COLORS,
-        // 256 color palette should be downgraded to the 8
-        // color palette according to terminal abilities.
-        Theme::get_palette(Theme::Name::MATERIAL_LIGHT)) ==
-        "\033[7mt\033[36mes\033[41mt\033[42m");
-
-  Text::set_message_prefix(Text::Message::ERROR, "prefix ");
-  CHECK("test"_err == "prefix test");
+  Progress progress({}, {}, numeric_limits<unsigned short>::max());
+  CHECK_THROWS_AS(progress.set_width(0U), Progress::no_space_error);
 }

@@ -15,24 +15,15 @@
  * limitations under the License.
  */
 
+#include <stdexcept>
+
 #include "doctest/doctest.h"
-#include "fcli/text.hpp"
+#include "fcli/theme.hpp"
 
 using namespace fcli;
+using namespace std;
 
-TEST_CASE("Format string") {
-  using namespace fcli::literals;
-
-  CHECK(Text::remove_specifiers_copy(
-        "<r>\033<b><U>~r~~g!~~Y~~B!~~!M~") == "<b><U>~g!~~!M~");
-
-  CHECK(Text::format_copy("<i>t~c~e~D~s~R~t~G!~",
-        Terminal::ColorsSupport::HAS_8_COLORS,
-        // 256 color palette should be downgraded to the 8
-        // color palette according to terminal abilities.
-        Theme::get_palette(Theme::Name::MATERIAL_LIGHT)) ==
-        "\033[7mt\033[36mes\033[41mt\033[42m");
-
-  Text::set_message_prefix(Text::Message::ERROR, "prefix ");
-  CHECK("test"_err == "prefix test");
+TEST_CASE("get_palette throws exception") {
+  CHECK_THROWS_AS(
+      static_cast<void>(Theme::get_palette(Theme::Name::_USER)), out_of_range);
 }

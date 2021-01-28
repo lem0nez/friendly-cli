@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-#include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <sstream>
@@ -26,10 +25,6 @@
 using namespace fcli::internal;
 using namespace fcli;
 using namespace std;
-
-/*
- * Constructors and copy assignment operator.
- */
 
 Progress::Progress(string_view t_text, bool t_determined,
     unsigned short t_width, ostream& t_ostream):
@@ -47,7 +42,7 @@ Progress::Progress(const Progress& t_other):
     m_append_dots(t_other.m_append_dots.load()),
     m_percents(t_other.m_percents.load()) {
 
-  lock_guard lock(t_other.m_mutex);
+  lock_guard lock(t_other.m_mut);
   copy_non_atomic(t_other);
 }
 
@@ -58,7 +53,7 @@ auto Progress::operator=(const Progress& t_other) -> Progress& {
     m_append_dots = t_other.m_append_dots.load();
     m_percents = t_other.m_percents.load();
 
-    scoped_lock locks(m_mutex, t_other.m_mutex);
+    scoped_lock locks{m_mut, t_other.m_mut};
     copy_non_atomic(t_other);
   }
   return *this;
@@ -66,10 +61,12 @@ auto Progress::operator=(const Progress& t_other) -> Progress& {
 
 void Progress::copy_non_atomic(const Progress& t_other) {
   m_text = t_other.m_text;
-  m_indicator = t_other.m_indicator;
   m_palette = t_other.m_palette;
   m_colors_support = t_other.m_colors_support;
   m_styles = t_other.m_styles;
+
+  m_indicator = t_other.m_indicator;
+  m_invalidate_frame_it = true;
 
   m_success_symbol = t_other.m_success_symbol;
   m_failure_symbol = t_other.m_failure_symbol;
@@ -80,21 +77,24 @@ void Progress::copy_non_atomic(const Progress& t_other) {
  */
 
 void Progress::show() {
+  unique_lock lock(m_force_update_mut);
   if (!m_hidden) {
     return;
   }
-
   m_hidden = false;
+  lock.unlock();
+
+  m_invalidate_frame_it = true;
   m_updater = thread(&Progress::update, this);
 }
 
 void Progress::hide() {
+  unique_lock lock(m_force_update_mut);
   if (m_hidden) {
     return;
   }
-
   m_hidden = true;
-  m_force_update.notify_one();
+  lock.unlock();
 
   if (m_updater.joinable()) {
     m_updater.join();
@@ -141,18 +141,20 @@ void Progress::update() {
       wait_time,
       // Passed time after waiting.
       passed_time,
-      update_frame_passed_time,
-      update_dots_passed_time = DOTS_UPDATE_INTERVAL;
+      // Set maximum value to immediately update indicator.
+      update_frame_passed_time = milliseconds::max(),
+      update_dots_passed_time;
 
   decltype(Indicator::frames)::const_iterator frame_it;
   // Current number of displayed dots. If text size is more than
   // space_for_text + MAX_DOTS, then static MAX_DOTS dots will be displayed.
-  size_t dots_count = MAX_DOTS;
+  size_t dots_count = 0U;
 
   unsigned short space_for_text = 0U;
   ostringstream percents_oss;
   size_t loading_bar_end_pos = 0U;
   string indicator, text, dots, percents, result;
+  bool hide = false;
 
   // Cached values (that used at least twice during
   // progress generation) of atomic members.
@@ -160,11 +162,9 @@ void Progress::update() {
   unsigned short width_cached = 0U;
   double percents_cached = 0.0;
 
-  constexpr auto FIXED_INDICATOR_WIDTH = size(" - ") - 1U;
-
   while (true) {
-    // Wait ONLY for new changes outside of thread if no
-    // part of the progress should be updated automatically.
+    // Wait ONLY for new changes outside if no part
+    // of the progress should be updated automatically.
     wait_time = milliseconds::max();
     determined_cached = m_determined;
     percents_cached = m_percents;
@@ -174,11 +174,11 @@ void Progress::update() {
      * Begin of progress generation.
      */
 
-    m_mutex.lock();
+    m_mut.lock();
 
     if (determined_cached) {
       // Empty stream and reset any error flags.
-      percents_oss.str(string());
+      percents_oss.str({});
       percents_oss.clear();
 
       percents_oss << fixed << setprecision(1) << percents_cached << '%';
@@ -198,8 +198,10 @@ void Progress::update() {
           m_invalidate_frame_it = false;
         }
 
-        indicator = ' ' + m_styles[Style::INDICATOR] + *frame_it + "<r> ";
-        space_for_text -= FIXED_INDICATOR_WIDTH;
+        indicator = ' ' + m_styles[Style::INDICATOR] +
+            frame_it->substr(0U, Indicator::MAX_FRAME_SIZE) + "<r> ";
+        // 2U is spaces around indicator.
+        space_for_text -= 2U + m_indicator.fixed_visible_length;
 
         if (++frame_it == m_indicator.frames.cend()) {
           frame_it = m_indicator.frames.cbegin();
@@ -229,7 +231,7 @@ void Progress::update() {
             min(DOTS_UPDATE_INTERVAL - update_dots_passed_time, wait_time);
       }
     } else {
-      dots = string();
+      dots = {};
     }
 
     // Trim text from the end if need.
@@ -264,14 +266,15 @@ void Progress::update() {
     Text::format(result, m_colors_support, m_palette);
     m_ostream << get_empty_line(width_cached) + result << flush;
 
-    m_mutex.unlock();
+    m_mut.unlock();
 
-    unique_lock update_lock(m_force_update_mutex);
-    m_force_update.wait_for(update_lock, wait_time);
+    unique_lock update_lock(m_force_update_mut);
+    hide = m_force_update.wait_for(update_lock, wait_time,
+        [this] { return m_hidden; });
     update_lock.unlock();
 
-    if (m_hidden) {
-      lock_guard lock(m_mutex);
+    if (hide) {
+      lock_guard lock(m_mut);
       m_ostream << get_empty_line(width_cached) << flush;
       return;
     }
@@ -287,14 +290,14 @@ void Progress::update() {
  */
 
 auto Progress::get_text() const -> string {
-  lock_guard lock(m_mutex);
+  lock_guard lock(m_mut);
   return m_text;
 }
 
 void Progress::set_text(string_view t_text) {
-  m_mutex.lock();
+  m_mut.lock();
   m_text = t_text;
-  m_mutex.unlock();
+  m_mut.unlock();
   m_force_update.notify_one();
 }
 
@@ -307,13 +310,12 @@ void Progress::set_width(unsigned short t_width) {
   if (t_width < MIN_WIDTH) {
     throw no_space_error();
   }
-
   m_width = t_width;
   m_force_update.notify_one();
 }
 
 auto Progress::get_ostream() -> ostream& {
-  lock_guard lock(m_mutex);
+  lock_guard lock(m_mut);
   return m_ostream;
 }
 
@@ -328,55 +330,59 @@ void Progress::set_percents(double t_percents) {
 }
 
 auto Progress::get_indicator() const -> Indicator {
-  lock_guard lock(m_mutex);
+  lock_guard lock(m_mut);
   return m_indicator;
 }
 
 void Progress::set_indicator(const Indicator& t_indicator) {
-  m_mutex.lock();
+  m_mut.lock();
   m_indicator = t_indicator;
-  m_mutex.unlock();
+  m_mut.unlock();
 
   m_invalidate_frame_it = true;
   m_force_update.notify_one();
 }
 
 auto Progress::get_palette() const -> Palette {
-  lock_guard lock(m_mutex);
+  lock_guard lock(m_mut);
   return m_palette;
 }
 
 void Progress::set_palette(const Palette& t_palette) {
-  m_mutex.lock();
+  m_mut.lock();
   m_palette = t_palette;
-  m_mutex.unlock();
+  m_mut.unlock();
   m_force_update.notify_one();
 }
 
 auto Progress::get_colors_support() const -> optional<Terminal::ColorsSupport> {
-  lock_guard lock(m_mutex);
+  lock_guard lock(m_mut);
   return m_colors_support;
 }
 
 void Progress::set_colors_support(
     const optional<Terminal::ColorsSupport>& t_colors_support) {
-
-  m_mutex.lock();
+  m_mut.lock();
   m_colors_support = t_colors_support;
-  m_mutex.unlock();
+  m_mut.unlock();
   m_force_update.notify_one();
 }
 
-auto Progress::get_style(Style t_name) const -> string {
-  lock_guard lock(m_mutex);
-  return m_styles.get(t_name);
+auto Progress::get_style(Style t_part) const -> string {
+  lock_guard lock(m_mut);
+  return m_styles.get(t_part);
 }
 
-void Progress::set_style(Style t_name, string_view t_style) {
-  m_mutex.lock();
-  m_styles.set(t_name, string(t_style));
-  m_mutex.unlock();
+void Progress::set_style(Style t_part, string_view t_style) {
+  m_mut.lock();
+  m_styles.set(t_part, string(t_style));
+  m_mut.unlock();
   m_force_update.notify_one();
+}
+
+auto Progress::is_hidden() const -> bool {
+  lock_guard lock(m_force_update_mut);
+  return m_hidden;
 }
 
 /*
@@ -387,8 +393,8 @@ auto Progress::get_indicator(BuiltInIndicator t_name) -> Indicator {
   using namespace chrono_literals;
 
   const EnumArray<BuiltInIndicator, Indicator> indicators({{
-    {125ms, {"-", "\\", "|", "/", "-", "\\", "|", "/"}},
-    {500ms, {"\u2022", " "}}
+    {125ms, 1U, {"-", "\\", "|", "/", "-", "\\", "|", "/"}},
+    {500ms, 1U, {"\u2022", " "}}
   }});
   return indicators.get(t_name);
 }

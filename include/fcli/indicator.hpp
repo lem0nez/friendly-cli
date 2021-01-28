@@ -25,13 +25,19 @@ namespace fcli {
   // Used by undetermined progress.
   struct Indicator {
     std::chrono::milliseconds update_interval;
+    // Use this variable as frames may have
+    // different sizes with the same visible length.
+    std::size_t fixed_visible_length;
     /*
-     * Each frame should be one character size. Using string because char
-     * can't store Unicode characters and wide char type isn't portable.
+     * Each frame should be of the same visible length. Size must be
+     * no more than MAX_FRAME_SIZE (other characters will be omitted).
      *
-     * Using forward_list because random access to an element doesn't
-     * required and iteration through elements is always from begin to end.
+     * Using forward_list because random access to an element doesn't required
+     * and iteration through elements is always from the begin to the end.
      */
     std::forward_list<std::string> frames;
+
+    // Size of the maximum valid code point in Unicode. 1U is terminating null.
+    static constexpr auto MAX_FRAME_SIZE = std::size("\U0010FFFF") - 1U;
   };
 } // Namespace fcli.

@@ -19,30 +19,32 @@
 
 #include <algorithm>
 #include <array>
-#include <type_traits>
 
 namespace fcli::internal {
-  // E is enumerator class and V is value type.
-  template<class E, class... V>
+  // E is enumerator class and V is values type.
+  template<class E, class V, auto size = static_cast<std::size_t>(E::_COUNT)>
+  // Wrapper around standard array, where
+  // key is a field of the enumerator class.
   class EnumArray {
-    using val_t = typename std::common_type<V...>::type;
-    using arr_t = std::array<val_t, static_cast<std::size_t>(E::_COUNT)>;
+    using arr_t = std::array<V, size>;
 
   public:
     constexpr EnumArray() = default;
-    constexpr explicit EnumArray(V... vals): m_arr{vals...} {}
     constexpr explicit EnumArray(arr_t orig): m_arr(std::move(orig)) {}
 
     [[nodiscard]] constexpr auto get(E elem) const
         { return m_arr.at(static_cast<std::size_t>(elem)); }
-    constexpr void set(E elem, const val_t& val)
+    constexpr void set(E elem, const V& val)
         { m_arr.at(static_cast<std::size_t>(elem)) = val; }
+
+    [[nodiscard]] constexpr auto exists(E elem) const
+        { return static_cast<std::size_t>(elem) < size; }
 
     constexpr auto operator=(const arr_t& orig) -> EnumArray& {
       m_arr = orig;
       return *this;
     }
-    [[nodiscard]] constexpr auto operator[](E elem) -> val_t&
+    [[nodiscard]] constexpr auto operator[](E elem) -> V&
         { return m_arr[static_cast<std::size_t>(elem)]; }
 
   private:

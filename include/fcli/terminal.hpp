@@ -37,7 +37,7 @@ namespace fcli {
     Terminal(int out_file_desc, std::string_view name):
         m_out_file_desc(out_file_desc), m_name(name) {}
 
-    [[nodiscard]] auto get_columns_count() const -> unsigned short;
+    [[nodiscard]] auto get_width() const -> unsigned short;
     // TRY to find out how many colors terminal supports.
     [[nodiscard]] auto find_out_supported_colors() const ->
         std::optional<ColorsSupport>;

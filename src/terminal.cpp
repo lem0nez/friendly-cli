@@ -24,7 +24,7 @@
 using namespace fcli;
 using namespace std;
 
-auto Terminal::get_columns_count() const -> unsigned short {
+auto Terminal::get_width() const -> unsigned short {
   struct winsize size{};
   const int err = ioctl(m_out_file_desc, TIOCGWINSZ, &size);
 
@@ -48,7 +48,7 @@ auto Terminal::find_out_supported_colors() const -> optional<ColorsSupport> {
   };
 
   for (const auto& t : colored_terms) {
-    if (m_name.find(t) == 0) {
+    if (m_name.find(t) == 0U) {
       // Name starts with t.
       colors_support = ColorsSupport::HAS_8_COLORS;
 
@@ -58,7 +58,6 @@ auto Terminal::find_out_supported_colors() const -> optional<ColorsSupport> {
       break;
     }
   }
-
   return colors_support;
 }
 

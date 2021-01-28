@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -59,7 +60,7 @@ namespace fcli {
       _DEFAULT = SPINNER
     };
 
-    // Placed in front of success messages.
+    // Placed in the front of success messages.
     enum class SuccessSymbol {
       PLUS,
       UNICODE_BULLET,
@@ -69,7 +70,7 @@ namespace fcli {
       _DEFAULT = PLUS
     };
 
-    // Placed in front of failure messages.
+    // Placed in the front of failure messages.
     enum class FailureSymbol {
       MINUS,
       UNICODE_BULLET,
@@ -86,9 +87,9 @@ namespace fcli {
     };
 
     Progress() = default;
-    // Text formatting isn't supported.
+    // Attention: text formatting isn't supported.
     Progress(std::string_view text, bool determined,
-        unsigned short width = Terminal().get_columns_count(),
+        unsigned short width = Terminal().get_width(),
         std::ostream& ostream = std::cout);
     inline ~Progress() { hide(); }
 
@@ -102,10 +103,10 @@ namespace fcli {
     // Initially, progress is hidden.
     void show();
     void hide();
-    // Result message automatically hide progress.
+    // Result message automatically hides progress.
     void finish(bool success, std::string_view message, bool format = true);
 
-    // Add 1 to percents of the determined progress.
+    // Add 1 to percents.
     auto operator++() -> Progress&;
 
     /*
@@ -133,6 +134,8 @@ namespace fcli {
 
     [[nodiscard]] auto get_indicator() const -> Indicator;
     void set_indicator(const Indicator&);
+    inline void set_indicator(BuiltInIndicator name)
+        { set_indicator(get_indicator(name)); }
 
     [[nodiscard]] auto get_palette() const -> Palette;
     void set_palette(const Palette&);
@@ -148,40 +151,50 @@ namespace fcli {
         { return m_success_symbol; }
     inline void set_success_symbol(std::string_view symbol)
         { m_success_symbol = symbol; }
+    inline void set_success_symbol(SuccessSymbol name)
+        { set_success_symbol(get_success_symbol(name)); }
+
+    [[nodiscard]] auto is_hidden() const -> bool;
 
     [[nodiscard]] inline auto get_failure_symbol() const
         { return m_failure_symbol; }
     inline void set_failure_symbol(std::string_view symbol)
         { m_failure_symbol = symbol; }
+    inline void set_failure_symbol(FailureSymbol name)
+        { set_failure_symbol(get_failure_symbol(name)); }
 
     /*
      * Static functions.
      */
 
     [[nodiscard]] static auto get_indicator(BuiltInIndicator) -> Indicator;
-    // Using string instead of char to store an
-    // Unicode character (wide char type isn't portable).
+    // Using string instead of char to store Unicode characters.
     [[nodiscard]] static auto get_success_symbol(SuccessSymbol) -> std::string;
     [[nodiscard]] static auto get_failure_symbol(FailureSymbol) -> std::string;
 
   private:
-    void copy_non_atomic(const Progress&);
-    // Updates progress text.
+    // Main function that updates progress.
     void update();
+    // Attention: it doesn't lock mutex automatically.
+    void copy_non_atomic(const Progress&);
+
     [[nodiscard]] static inline auto get_empty_line(unsigned short width)
         { return '\r' + std::string(width, ' ') + '\r'; }
 
-    static constexpr double MAX_PERCENTS = 100.0;
     static constexpr std::chrono::milliseconds DOTS_UPDATE_INTERVAL{1000};
     static constexpr std::size_t MAX_DOTS = 3U;
+    static constexpr double MAX_PERCENTS = 100.0;
     static constexpr unsigned short
-        // Determined progress has maximum size.
-        MIN_WIDTH = MAX_DOTS + std::size(" 100.0%") - 1U,
-        MAX_WIDTH = static_cast<std::size_t>(MAX_PERCENTS);
+        MAX_WIDTH = static_cast<std::size_t>(MAX_PERCENTS),
+        MIN_WIDTH = std::max(
+            // Determined progress size. 1U is terminating null.
+            MAX_DOTS + std::size(" 100.0%") - 1U,
+            // Undetermined progress size. 2U is spaces around an indicator.
+            2U + Indicator::MAX_FRAME_SIZE + MAX_DOTS);
 
     std::string m_text;
     std::atomic<bool> m_determined{};
-    std::atomic<unsigned short> m_width{Terminal().get_columns_count()};
+    std::atomic<unsigned short> m_width{Terminal().get_width()};
     std::ostream& m_ostream{std::cout};
 
     std::atomic<bool> m_append_dots{true};
@@ -190,7 +203,7 @@ namespace fcli {
     // Undetermined progress only.
     Indicator m_indicator{get_indicator(BuiltInIndicator::_DEFAULT)};
     // Set to true when indicator is changed. Used by updater.
-    std::atomic<bool> m_invalidate_frame_it{true};
+    std::atomic<bool> m_invalidate_frame_it{};
 
     Palette m_palette{Theme::get_palette()};
     std::optional<Terminal::ColorsSupport>
@@ -198,19 +211,19 @@ namespace fcli {
 
     internal::EnumArray<Style, std::string> m_styles
         {{"~B~", "<b>", "<b>~y~", "<b>~g~", "<b>~r~"}};
-    // This members accessed only by single thread.
+    // Updater doesn't use this members, so mutex lock doesn't required.
     std::string
         m_success_symbol{get_success_symbol(SuccessSymbol::_DEFAULT)},
         m_failure_symbol{get_failure_symbol(FailureSymbol::_DEFAULT)};
 
-    std::atomic<bool> m_hidden{true};
     // Executes the update function.
     std::thread m_updater;
-    // Used to read / write non-atomic members.
-    mutable std::mutex m_mutex;
-    // Used to notify updater for new changes
-    // (text changed, progress hidden, etc.).
+    // Locked before reading / writing for non-atomic members.
+    mutable std::mutex m_mut;
+
+    bool m_hidden{true};
+    // Used to notify updater for new changes.
     std::condition_variable m_force_update;
-    std::mutex m_force_update_mutex;
+    mutable std::mutex m_force_update_mut;
   };
 } // Namespace fcli.

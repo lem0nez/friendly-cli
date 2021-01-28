@@ -15,11 +15,20 @@
  * limitations under the License.
  */
 
+#include <cstdlib>
+#include <stdexcept>
+
 #include "doctest/doctest.h"
 #include "fcli/terminal.hpp"
 
 using namespace fcli;
 using namespace std;
+
+TEST_CASE("get_width throws exception") {
+  // Pass invalid file descriptor.
+  Terminal term(-1);
+  CHECK_THROWS_AS(static_cast<void>(term.get_width()), runtime_error);
+}
 
 TEST_CASE("Detect colors support") {
   Terminal term("");
@@ -32,10 +41,7 @@ TEST_CASE("Detect colors support") {
   term.set_name("xterm-256color");
   CHECK(term.find_out_supported_colors() ==
         Terminal::ColorsSupport::HAS_256_COLORS);
-}
 
-TEST_CASE("get_columns_count throws exception") {
-  // Pass invalid file descriptor.
-  Terminal term(-1);
-  CHECK_THROWS(static_cast<void>(term.get_columns_count()));
+  unsetenv("TERM");
+  CHECK_NOTHROW(Terminal());
 }

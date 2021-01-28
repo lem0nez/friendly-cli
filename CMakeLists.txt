@@ -56,8 +56,10 @@ install(FILES ${CMAKE_BINARY_DIR}/fcli.pc
 
 set(TEST_SOURCES
     test/main.cpp
+    test/progress.cpp
     test/terminal.cpp
-    test/text.cpp)
+    test/text.cpp
+    test/theme.cpp)
 
 if(BUILD_TESTING)
     find_package(doctest REQUIRED)

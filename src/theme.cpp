@@ -15,19 +15,13 @@
  * limitations under the License.
  */
 
+#include <stdexcept>
+
 #include "fcli/internal/enum_array.hpp"
 #include "fcli/theme.hpp"
 
 using namespace fcli;
-
-auto Theme::get_default_palette() noexcept -> Palette {
-  return {
-    {1U, false}, {2U, false}, {3U, false},
-    {4U, false}, {5U, false}, {6U, false},
-    // Dim color doesn't exist in the 8 color palette.
-    {Palette::Color::INVALID_ASCII_CODE, {}}
-  };
-}
+using namespace std;
 
 auto Theme::get_palette(Name t_name) -> Palette {
   using namespace fcli::internal;
@@ -53,7 +47,20 @@ auto Theme::get_palette(Name t_name) -> Palette {
       {249U, true}
     }
   }};
+
+  if (!palettes.exists(t_name)) {
+    throw out_of_range("invalid palette index");
+  }
   return palettes.get(t_name);
+}
+
+auto Theme::get_default_palette() noexcept -> Palette {
+  return {
+    {1U, false}, {2U, false}, {3U, false},
+    {4U, false}, {5U, false}, {6U, false},
+    // Dim color doesn't exist in the 8 color palette.
+    {Palette::Color::INVALID_ASCII_CODE, {}}
+  };
 }
 
 void Theme::set_pallete(const Palette& t_palette) {
