@@ -106,8 +106,11 @@ namespace fcli {
     // Result message automatically hides progress.
     void finish(bool success, std::string_view message, bool format = true);
 
-    // Add 1 to percents.
+    // Percents control.
     auto operator++() -> Progress&;
+    auto operator+=(double) -> Progress&;
+    // Change text.
+    auto operator=(std::string_view) -> Progress&;
 
     /*
      * Getters / setters.

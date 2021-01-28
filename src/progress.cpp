@@ -53,37 +53,33 @@ auto Progress::operator=(const Progress& t_other) -> Progress& {
     m_append_dots = t_other.m_append_dots.load();
     m_percents = t_other.m_percents.load();
 
-    scoped_lock locks{m_mut, m_force_update_mut, t_other.m_mut};
+    scoped_lock locks{m_mut, t_other.m_mut};
     copy_non_atomic(t_other);
+    notify();
   }
   return *this;
 }
 
 void Progress::copy_non_atomic(const Progress& t_other) {
   m_text = t_other.m_text;
-  m_indicator = t_other.m_indicator;
   m_palette = t_other.m_palette;
   m_colors_support = t_other.m_colors_support;
   m_styles = t_other.m_styles;
 
+  m_indicator = t_other.m_indicator;
+  m_invalidate_frame_it = true;
+
   m_success_symbol = t_other.m_success_symbol;
   m_failure_symbol = t_other.m_failure_symbol;
-
-  m_force_update = m_invalidate_frame_it = true;
 }
-
-/*
- * Functions.
- */
 
 void Progress::show() {
   if (!m_hidden) {
     return;
   }
 
-  m_force_update = false;
+  m_hidden = m_force_update = false;
   m_invalidate_frame_it = true;
-  m_hidden = false;
   m_updater = thread(&Progress::update, this);
 }
 
@@ -119,16 +115,26 @@ void Progress::finish(bool t_success, string_view t_message, bool t_format) {
   m_ostream << prefix + message << endl;
 }
 
-auto Progress::operator++() -> Progress& {
-  set_percents(m_percents + 1.0);
-  return *this;
-}
-
 void Progress::notify() {
   m_force_update_mut.lock();
   m_force_update = true;
   m_force_update_mut.unlock();
   m_force_update_cv.notify_one();
+}
+
+auto Progress::operator++() -> Progress& {
+  set_percents(m_percents + 1.0);
+  return *this;
+}
+
+auto Progress::operator+=(double t_percents) -> Progress& {
+  set_percents(m_percents + t_percents);
+  return *this;
+}
+
+auto Progress::operator=(string_view t_text) -> Progress& {
+  set_text(t_text);
+  return *this;
 }
 
 /*

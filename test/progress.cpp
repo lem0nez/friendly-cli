@@ -16,6 +16,7 @@
  */
 
 #include <limits>
+#include <sstream>
 
 #include "doctest/doctest.h"
 #include "fcli/progress.hpp"
@@ -28,4 +29,12 @@ TEST_CASE("Width handling") {
 
   Progress progress({}, {}, numeric_limits<unsigned short>::max());
   CHECK_THROWS_AS(progress.set_width(0U), Progress::no_space_error);
+}
+
+TEST_CASE("Progress is displayed") {
+  ostringstream ostream;
+  Progress progress({}, false, numeric_limits<unsigned short>::max(), ostream);
+  progress.show();
+  progress.hide();
+  CHECK_FALSE(ostream.str().empty());
 }
