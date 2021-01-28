@@ -124,6 +124,7 @@ namespace fcli {
     void set_width(unsigned short);
 
     [[nodiscard]] auto get_ostream() -> std::ostream&;
+    [[nodiscard]] inline auto is_hidden() const { return m_hidden.load(); }
 
     [[nodiscard]] inline auto is_dots_used() const
         { return m_append_dots.load(); }
@@ -154,8 +155,6 @@ namespace fcli {
     inline void set_success_symbol(SuccessSymbol name)
         { set_success_symbol(get_success_symbol(name)); }
 
-    [[nodiscard]] auto is_hidden() const -> bool;
-
     [[nodiscard]] inline auto get_failure_symbol() const
         { return m_failure_symbol; }
     inline void set_failure_symbol(std::string_view symbol)
@@ -175,6 +174,8 @@ namespace fcli {
   private:
     // Main function that updates progress.
     void update();
+    // Used to notify updater for new changes.
+    void notify();
     // Attention: it doesn't lock mutex automatically.
     void copy_non_atomic(const Progress&);
 
@@ -197,6 +198,7 @@ namespace fcli {
     std::atomic<unsigned short> m_width{Terminal().get_width()};
     std::ostream& m_ostream{std::cout};
 
+    std::atomic<bool> m_hidden{true};
     std::atomic<bool> m_append_dots{true};
     // Determined progress only.
     std::atomic<double> m_percents{};
@@ -221,9 +223,8 @@ namespace fcli {
     // Locked before reading / writing for non-atomic members.
     mutable std::mutex m_mut;
 
-    bool m_hidden{true};
-    // Used to notify updater for new changes.
-    std::condition_variable m_force_update;
+    bool m_force_update{};
+    std::condition_variable m_force_update_cv;
     mutable std::mutex m_force_update_mut;
   };
 } // Namespace fcli.

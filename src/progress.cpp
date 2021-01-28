@@ -53,7 +53,7 @@ auto Progress::operator=(const Progress& t_other) -> Progress& {
     m_append_dots = t_other.m_append_dots.load();
     m_percents = t_other.m_percents.load();
 
-    scoped_lock locks{m_mut, t_other.m_mut};
+    scoped_lock locks{m_mut, m_force_update_mut, t_other.m_mut};
     copy_non_atomic(t_other);
   }
   return *this;
@@ -61,15 +61,15 @@ auto Progress::operator=(const Progress& t_other) -> Progress& {
 
 void Progress::copy_non_atomic(const Progress& t_other) {
   m_text = t_other.m_text;
+  m_indicator = t_other.m_indicator;
   m_palette = t_other.m_palette;
   m_colors_support = t_other.m_colors_support;
   m_styles = t_other.m_styles;
 
-  m_indicator = t_other.m_indicator;
-  m_invalidate_frame_it = true;
-
   m_success_symbol = t_other.m_success_symbol;
   m_failure_symbol = t_other.m_failure_symbol;
+
+  m_force_update = m_invalidate_frame_it = true;
 }
 
 /*
@@ -77,24 +77,22 @@ void Progress::copy_non_atomic(const Progress& t_other) {
  */
 
 void Progress::show() {
-  unique_lock lock(m_force_update_mut);
   if (!m_hidden) {
     return;
   }
-  m_hidden = false;
-  lock.unlock();
 
+  m_force_update = false;
   m_invalidate_frame_it = true;
+  m_hidden = false;
   m_updater = thread(&Progress::update, this);
 }
 
 void Progress::hide() {
-  unique_lock lock(m_force_update_mut);
   if (m_hidden) {
     return;
   }
   m_hidden = true;
-  lock.unlock();
+  notify();
 
   if (m_updater.joinable()) {
     m_updater.join();
@@ -126,6 +124,13 @@ auto Progress::operator++() -> Progress& {
   return *this;
 }
 
+void Progress::notify() {
+  m_force_update_mut.lock();
+  m_force_update = true;
+  m_force_update_mut.unlock();
+  m_force_update_cv.notify_one();
+}
+
 /*
  * Main logic.
  */
@@ -154,7 +159,6 @@ void Progress::update() {
   ostringstream percents_oss;
   size_t loading_bar_end_pos = 0U;
   string indicator, text, dots, percents, result;
-  bool hide = false;
 
   // Cached values (that used at least twice during
   // progress generation) of atomic members.
@@ -269,11 +273,12 @@ void Progress::update() {
     m_mut.unlock();
 
     unique_lock update_lock(m_force_update_mut);
-    hide = m_force_update.wait_for(update_lock, wait_time,
-        [this] { return m_hidden; });
+    m_force_update_cv.wait_for(update_lock, wait_time,
+        [this] { return m_force_update; });
+    m_force_update = false;
     update_lock.unlock();
 
-    if (hide) {
+    if (m_hidden) {
       lock_guard lock(m_mut);
       m_ostream << get_empty_line(width_cached) << flush;
       return;
@@ -295,15 +300,14 @@ auto Progress::get_text() const -> string {
 }
 
 void Progress::set_text(string_view t_text) {
-  m_mut.lock();
+  lock_guard lock(m_mut);
   m_text = t_text;
-  m_mut.unlock();
-  m_force_update.notify_one();
+  notify();
 }
 
 void Progress::set_determined(bool t_determined) {
   m_determined = t_determined;
-  m_force_update.notify_one();
+  notify();
 }
 
 void Progress::set_width(unsigned short t_width) {
@@ -311,7 +315,7 @@ void Progress::set_width(unsigned short t_width) {
     throw no_space_error();
   }
   m_width = t_width;
-  m_force_update.notify_one();
+  notify();
 }
 
 auto Progress::get_ostream() -> ostream& {
@@ -321,12 +325,12 @@ auto Progress::get_ostream() -> ostream& {
 
 void Progress::set_append_dots(bool t_enable) {
   m_append_dots = t_enable;
-  m_force_update.notify_one();
+  notify();
 }
 
 void Progress::set_percents(double t_percents) {
   m_percents = min(t_percents, MAX_PERCENTS);
-  m_force_update.notify_one();
+  notify();
 }
 
 auto Progress::get_indicator() const -> Indicator {
@@ -335,12 +339,10 @@ auto Progress::get_indicator() const -> Indicator {
 }
 
 void Progress::set_indicator(const Indicator& t_indicator) {
-  m_mut.lock();
+  lock_guard lock(m_mut);
   m_indicator = t_indicator;
-  m_mut.unlock();
-
   m_invalidate_frame_it = true;
-  m_force_update.notify_one();
+  notify();
 }
 
 auto Progress::get_palette() const -> Palette {
@@ -349,10 +351,9 @@ auto Progress::get_palette() const -> Palette {
 }
 
 void Progress::set_palette(const Palette& t_palette) {
-  m_mut.lock();
+  lock_guard lock(m_mut);
   m_palette = t_palette;
-  m_mut.unlock();
-  m_force_update.notify_one();
+  notify();
 }
 
 auto Progress::get_colors_support() const -> optional<Terminal::ColorsSupport> {
@@ -362,10 +363,9 @@ auto Progress::get_colors_support() const -> optional<Terminal::ColorsSupport> {
 
 void Progress::set_colors_support(
     const optional<Terminal::ColorsSupport>& t_colors_support) {
-  m_mut.lock();
+  lock_guard lock(m_mut);
   m_colors_support = t_colors_support;
-  m_mut.unlock();
-  m_force_update.notify_one();
+  notify();
 }
 
 auto Progress::get_style(Style t_part) const -> string {
@@ -374,15 +374,9 @@ auto Progress::get_style(Style t_part) const -> string {
 }
 
 void Progress::set_style(Style t_part, string_view t_style) {
-  m_mut.lock();
+  lock_guard lock(m_mut);
   m_styles.set(t_part, string(t_style));
-  m_mut.unlock();
-  m_force_update.notify_one();
-}
-
-auto Progress::is_hidden() const -> bool {
-  lock_guard lock(m_force_update_mut);
-  return m_hidden;
+  notify();
 }
 
 /*
