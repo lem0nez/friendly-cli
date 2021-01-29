@@ -1,4 +1,7 @@
 # Friendly CLI
+Lightweight feature-rich Linux library, that written in modern C++17 and doesn't
+require external dependencies.
+
 ## Text formatting
 `Text` class provides text formatting tools, that support following specifiers.
 - Style specifier `<s>`, where `s` is first lowercase letter of a style:

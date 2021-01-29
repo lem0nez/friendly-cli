@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 project(friendly-cli
         VERSION 1.0.0
         DESCRIPTION "\
-Modern C++ library for Linux that provides an \
+A modern C++ library for Linux that provides an \
 easy-to-use API for user interaction through CLI"
         HOMEPAGE_URL https://github.com/lem0nez/friendly-cli
         LANGUAGES CXX)
