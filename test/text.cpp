@@ -26,12 +26,12 @@ TEST_CASE("Format string") {
   CHECK(Text::remove_specifiers_copy(
         "<r>\033<b><U>~r~~g!~~Y~~B!~~!M~") == "<b><U>~g!~~!M~");
 
-  CHECK(Text::format_copy("<i>t~c~e~D~s~R~t~G!~",
+  CHECK(Text::format_copy("<i>t~c~e~D~\U0010FFFF~R~t~G!~",
         Terminal::ColorsSupport::HAS_8_COLORS,
         // 256 color palette should be downgraded to the 8
         // color palette according to terminal abilities.
         Theme::get_palette(Theme::Name::MATERIAL_LIGHT)) ==
-        "\033[7mt\033[36mes\033[41mt\033[42m");
+        "\033[7mt\033[36me\U0010FFFF\033[41mt\033[42m");
 
   Text::set_message_prefix(Text::Message::ERROR, "prefix ");
   CHECK("test"_err == "prefix test");
