@@ -65,6 +65,7 @@ namespace fcli {
       PLUS,
       UNICODE_BULLET,
       UNICODE_CHECK_MARK,
+      UNICODE_HEAVY_CHECK_MARK,
 
       _COUNT,
       _DEFAULT = PLUS
@@ -74,6 +75,7 @@ namespace fcli {
     enum class FailureSymbol {
       MINUS,
       UNICODE_BULLET,
+      UNICODE_MULTIPLICATION_SIGN,
       UNICODE_HEAVY_MULTIPLICATION,
 
       _COUNT,
@@ -109,6 +111,7 @@ namespace fcli {
     // Percents control.
     auto operator++() -> Progress&;
     auto operator+=(double) -> Progress&;
+    auto operator=(double) -> Progress&;
     // Change text.
     auto operator=(std::string_view) -> Progress&;
 

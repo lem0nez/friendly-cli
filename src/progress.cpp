@@ -29,7 +29,7 @@ using namespace std;
 Progress::Progress(string_view t_text, bool t_determined,
     unsigned short t_width, ostream& t_ostream):
     m_text(t_text), m_determined(t_determined),
-    m_width(t_width), m_ostream(t_ostream) {
+    m_width(min(t_width, MAX_WIDTH)), m_ostream(t_ostream) {
 
   if (t_width < MIN_WIDTH) {
     throw no_space_error();
@@ -129,6 +129,11 @@ auto Progress::operator++() -> Progress& {
 
 auto Progress::operator+=(double t_percents) -> Progress& {
   set_percents(m_percents + t_percents);
+  return *this;
+}
+
+auto Progress::operator=(double t_percents) -> Progress& {
+  set_percents(t_percents);
   return *this;
 }
 
@@ -320,7 +325,7 @@ void Progress::set_width(unsigned short t_width) {
   if (t_width < MIN_WIDTH) {
     throw no_space_error();
   }
-  m_width = t_width;
+  m_width = min(t_width, MAX_WIDTH);
   notify();
 }
 
@@ -401,14 +406,14 @@ auto Progress::get_indicator(BuiltInIndicator t_name) -> Indicator {
 
 auto Progress::get_success_symbol(SuccessSymbol t_name) -> string {
   constexpr EnumArray<SuccessSymbol, string_view> symbols{{
-    "+", "\u2022", "\u2713"
+    "+", "\u2022", "\u2713", "\u2714"
   }};
   return string(symbols.get(t_name));
 }
 
 auto Progress::get_failure_symbol(FailureSymbol t_name) -> string {
   constexpr EnumArray<FailureSymbol, string_view> symbols{{
-    "-", "\u2022", "\u2716"
+    "-", "\u2022", "\u00d7", "\u2716"
   }};
   return string(symbols.get(t_name));
 }
