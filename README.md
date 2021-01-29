@@ -49,20 +49,21 @@ int main() {
   string text = "~m~Col~b~ori~c~ze<r> and <b><u>stylize<r> ~Y~anything<r>";
   Text::format(text);
   cout << text << endl;
-  // Or like this:
+  // Or pass text by value:
   // cout << Text::format_copy("...") << endl;
   return 0;
 }
 ```
 Execution result for a terminal that supports 256 colors:
-![Colorize and stylize anything](./images/colorize-and-stylize-anything.png)
+
+![Colorize and stylize anything](images/colorize-and-stylize-anything.png)
 
 `fcli::literals` namespace provides the user-defined string literals. For
 example, to format an error message use the `_err` literal:
 ```cpp
 cout << "Couldn't hack the Pentagon!"_err << endl;
 ```
-![Couldn't hack the Pentagon](./images/could-not-hack-the-pentagon.png)
+![Couldn't hack the Pentagon](images/could-not-hack-the-pentagon.png)
 
 ## User-defined palette
 If you don't like predefined themes, you can create own color palette:
@@ -87,7 +88,7 @@ animated indicator _(that you can change)_ and text:
 Progress progress("Calling Elon Musk", false);
 progress.show();
 ```
-![Calling Elon Musk](./images/calling-elon-musk.png)
+![Calling Elon Musk](images/calling-elon-musk.png)
 
 Determined progress has percents and it shows loading bar as background color:
 ```cpp
@@ -98,7 +99,7 @@ progress = "Downloading the Internet";
 // And percents too.
 progress = 42.0;
 ```
-![Downloading the Internet](./images/downloading-the-internet.png)
+![Downloading the Internet](images/downloading-the-internet.png)
 
 ## Build
 All you need is a compiler that supports the C++17 standard and default system
