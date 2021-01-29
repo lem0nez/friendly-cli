@@ -21,11 +21,12 @@ namespace fcli {
   // Used by text formatter.
   struct Palette {
     struct Color {
-      unsigned short ascii_code;
+      unsigned short code;
       // Whether text should be inverted when using a color as background.
       bool invert_text;
 
-      static constexpr unsigned short INVALID_ASCII_CODE = 256U;
+      // Maximum 8-bit value.
+      static constexpr unsigned short INVALID_CODE = 256U;
     };
 
     Color

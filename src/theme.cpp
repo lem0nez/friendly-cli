@@ -59,7 +59,7 @@ auto Theme::get_default_palette() noexcept -> Palette {
     {1U, false}, {2U, false}, {3U, false},
     {4U, false}, {5U, false}, {6U, false},
     // Dim color doesn't exist in the 8 color palette.
-    {Palette::Color::INVALID_ASCII_CODE, {}}
+    {Palette::Color::INVALID_CODE, {}}
   };
 }
 

@@ -72,7 +72,7 @@ void Text::format(
   };
 
   const bool passed_256_color_palette =
-      t_palette.dim.ascii_code != Palette::Color::INVALID_ASCII_CODE;
+      t_palette.dim.code != Palette::Color::INVALID_CODE;
   bool use_8_color_palette = !passed_256_color_palette;
 
   if (colors_supported &&
@@ -94,10 +94,10 @@ void Text::format(
     background_esc_seq = "48;5;";
   }
 
-  for (const auto& [letter, code] : colors) {
+  for (const auto& [letter, color] : colors) {
     const bool remove = !colors_supported ||
-        code->ascii_code == Palette::Color::INVALID_ASCII_CODE;
-    const auto code_str = to_string(code->ascii_code);
+        color->code == Palette::Color::INVALID_CODE;
+    const auto code_str = to_string(color->code);
     esc_seq = {};
 
     // Foreground.
@@ -122,7 +122,7 @@ void Text::format(
     if (!remove) {
       esc_seq = ESC_SEQ_START;
 
-      if (code->invert_text) {
+      if (color->invert_text) {
         esc_seq += to_string(styles.at('i')) + ';' + foreground_esc_seq;
       } else {
         esc_seq += background_esc_seq;
