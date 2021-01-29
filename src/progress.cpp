@@ -177,10 +177,13 @@ void Progress::update() {
   unsigned short width_cached = 0U;
   double percents_cached = 0.0;
 
+  // Don't use milliseconds::max() as it leads to overflow.
+  constexpr milliseconds MAX_WAIT_TIME = 1h;
+
   while (true) {
     // Wait ONLY for new changes outside if no part
     // of the progress should be updated automatically.
-    wait_time = milliseconds::max();
+    wait_time = MAX_WAIT_TIME;
     determined_cached = m_determined;
     percents_cached = m_percents;
     space_for_text = width_cached = m_width;
