@@ -96,7 +96,7 @@ Determined progress has percents and it shows loading bar as background color:
 ```cpp
 // Reuse previously created progress.
 progress.set_determimed(true);
-// You can change text like this.
+// You can change using the assignment operator.
 progress = "Downloading the Internet";
 // And percents too.
 progress = 42.0;

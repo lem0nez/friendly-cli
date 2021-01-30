@@ -6,6 +6,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
     defaults:
       run:
         shell: bash
@@ -21,6 +24,8 @@ jobs:
 
       - name: Configure CMake
         working-directory: build
+        env:
+          CXX: ${{matrix.compiler}}
         run: cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
       - name: Build
