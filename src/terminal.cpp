@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cstdlib>
+#include <stdexcept>
 #include <sys/ioctl.h>
 
 #include "fcli/terminal.hpp"
