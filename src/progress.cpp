@@ -34,6 +34,7 @@ Progress::Progress(string_view t_text, bool t_determined,
   if (t_width < MIN_WIDTH) {
     throw no_space_error();
   }
+  fill_styles();
 }
 
 Progress::Progress(const Progress& t_other):
@@ -60,11 +61,19 @@ auto Progress::operator=(const Progress& t_other) -> Progress& {
   return *this;
 }
 
+void Progress::fill_styles(
+    const optional<Terminal::ColorsSupport>& t_colors_support,
+    const Palette& t_palette) {
+
+  m_formatted_styles.for_each([&] (Style name) {
+    m_formatted_styles.set(name,
+        Text::format_copy(s_styles->get(name), t_colors_support, t_palette));
+  });
+}
+
 void Progress::copy_non_atomic(const Progress& t_other) {
   m_text = t_other.m_text;
-  m_palette = t_other.m_palette;
-  m_colors_support = t_other.m_colors_support;
-  m_styles = t_other.m_styles;
+  m_formatted_styles = t_other.m_formatted_styles;
 
   m_indicator = t_other.m_indicator;
   m_invalidate_frame_it = true;
@@ -95,24 +104,18 @@ void Progress::hide() {
   }
 }
 
-void Progress::finish(bool t_success, string_view t_message, bool t_format) {
+void Progress::finish(bool t_success, string_view t_message) {
   hide();
-
-  string message(t_message);
-  if (t_format) {
-    Text::format(message, m_colors_support, m_palette);
-  }
 
   string prefix = " ";
   if (t_success) {
-    prefix += m_styles[Style::SUCCESS_SYMBOL] + m_success_symbol;
+    prefix += m_formatted_styles[Style::SUCCESS_SYMBOL] + m_success_symbol;
   } else {
-    prefix += m_styles[Style::FAILURE_SYMBOL] + m_failure_symbol;
+    prefix += m_formatted_styles[Style::FAILURE_SYMBOL] + m_failure_symbol;
   }
-  prefix += "<r> ";
+  prefix += m_formatted_styles[Style::PLAIN] + ' ';
 
-  Text::format(prefix, m_colors_support, m_palette);
-  m_ostream << prefix + message << endl;
+  m_ostream << prefix + string(t_message) << endl;
 }
 
 void Progress::notify() {
@@ -216,8 +219,9 @@ void Progress::update() {
           m_invalidate_frame_it = false;
         }
 
-        indicator = ' ' + m_styles[Style::INDICATOR] +
-            frame_it->substr(0U, Indicator::MAX_FRAME_SIZE) + "<r> ";
+        // Don't store formatted styles here as they can be changed and
+        // user will wait for new indicator iteration to view changes.
+        indicator = frame_it->substr(0U, Indicator::MAX_FRAME_SIZE);
         // 2U is spaces around indicator.
         space_for_text -= 2U + m_indicator.fixed_visible_length;
 
@@ -249,7 +253,7 @@ void Progress::update() {
             min(DOTS_UPDATE_INTERVAL - update_dots_passed_time, wait_time);
       }
     } else {
-      dots = {};
+      dots.clear();
     }
 
     // Trim text from the end if need.
@@ -266,24 +270,25 @@ void Progress::update() {
 
       if (loading_bar_end_pos >= result.length()) {
         percents.insert(loading_bar_end_pos - result.length(),
-            "<r>" + m_styles[Style::PERCENTS]);
+            m_formatted_styles[Style::PLAIN] +
+            m_formatted_styles[Style::PERCENTS]);
       } else {
-        result.insert(loading_bar_end_pos, "<r>");
+        result.insert(loading_bar_end_pos, m_formatted_styles[Style::PLAIN]);
       }
 
-      result = m_styles[Style::LOADING_BAR] + result +
-          m_styles[Style::PERCENTS] + percents;
+      result = m_formatted_styles[Style::PLAIN] +
+          m_formatted_styles[Style::LOADING_BAR] + result +
+          m_formatted_styles[Style::PERCENTS] + percents;
     } else {
-      result = indicator + text + dots;
+      result = ' ' + m_formatted_styles[Style::INDICATOR] + indicator +
+          m_formatted_styles[Style::PLAIN] + ' ' + text + dots;
     }
 
     /*
      * End of progress generation.
      */
 
-    Text::format(result, m_colors_support, m_palette);
     m_ostream << get_empty_line(width_cached) + result << flush;
-
     m_mut.unlock();
 
     unique_lock update_lock(m_force_update_mut);
@@ -359,37 +364,13 @@ void Progress::set_indicator(const Indicator& t_indicator) {
   notify();
 }
 
-auto Progress::get_palette() const -> Palette {
-  lock_guard lock(m_mut);
-  return m_palette;
-}
+void Progress::set_style(Style t_part, string_view t_style,
+    const optional<Terminal::ColorsSupport>& t_colors_support,
+    const Palette& t_palette) {
 
-void Progress::set_palette(const Palette& t_palette) {
   lock_guard lock(m_mut);
-  m_palette = t_palette;
-  notify();
-}
-
-auto Progress::get_colors_support() const -> optional<Terminal::ColorsSupport> {
-  lock_guard lock(m_mut);
-  return m_colors_support;
-}
-
-void Progress::set_colors_support(
-    const optional<Terminal::ColorsSupport>& t_colors_support) {
-  lock_guard lock(m_mut);
-  m_colors_support = t_colors_support;
-  notify();
-}
-
-auto Progress::get_style(Style t_part) const -> string {
-  lock_guard lock(m_mut);
-  return m_styles.get(t_part);
-}
-
-void Progress::set_style(Style t_part, string_view t_style) {
-  lock_guard lock(m_mut);
-  m_styles.set(t_part, string(t_style));
+  m_formatted_styles.set(t_part,
+      Text::format_copy(string(t_style), t_colors_support, t_palette));
   notify();
 }
 

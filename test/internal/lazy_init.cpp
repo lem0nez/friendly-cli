@@ -15,30 +15,27 @@
  * limitations under the License.
  */
 
-#include <limits>
-#include <sstream>
+#include <stdexcept>
+#include <string>
 
 #include "doctest/doctest.h"
-#include "fcli/progress.hpp"
+#include "fcli/internal/lazy_init.hpp"
 
-using namespace doctest;
-using namespace fcli;
+using namespace fcli::internal;
 using namespace std;
+using namespace string_literals;
 
-TEST_CASE("Width handling") {
-  CHECK_THROWS_AS(Progress({}, {}, 0U), Progress::no_space_error);
-
-  Progress progress({}, {}, numeric_limits<unsigned short>::max());
-  CHECK_THROWS_AS(progress.set_width(0U), Progress::no_space_error);
+TEST_CASE("Initializer call on the first access") {
+  LazyInit<bool> exception([] {
+    throw runtime_error("");
+    return false;
+  });
+  CHECK_THROWS_AS(static_cast<void>(*exception), runtime_error);
 }
 
-TEST_CASE("Progress is displayed" *
-          description("Progress should be hidden immediately after a request") *
-          timeout(0.1)) {
-
-  ostringstream ostream;
-  Progress progress({}, false, numeric_limits<unsigned short>::max(), ostream);
-  progress.show();
-  progress.hide();
-  CHECK_FALSE(ostream.str().empty());
+TEST_CASE("Operators") {
+  LazyInit<string> str([] { return "test"s; });
+  REQUIRE(*str == "test");
+  str->clear();
+  CHECK(str->empty());
 }

@@ -48,7 +48,7 @@ void Text::format(
   };
 
   for (const auto& [letter, code] : styles) {
-    esc_seq = {};
+    esc_seq.clear();
     if (colors_supported) {
       esc_seq = string(ESC_SEQ_START) + to_string(code) + string(ESC_SEQ_END);
     }
@@ -98,7 +98,7 @@ void Text::format(
     const bool remove = !colors_supported ||
         color->code == Palette::Color::INVALID_CODE;
     const auto code_str = to_string(color->code);
-    esc_seq = {};
+    esc_seq.clear();
 
     // Foreground.
     if (!remove) {
@@ -162,25 +162,10 @@ void Text::replace_specifier(string& t_str,
   }
 }
 
-auto Text::get_message_prefix(Message t_type) -> string {
-  init_prefixes_if_need();
-  return s_prefixes.get(t_type);
-}
-
-void Text::set_message_prefix(Message t_type, string_view t_prefix) {
-  init_prefixes_if_need();
-  s_prefixes.set(t_type, string(t_prefix));
-}
-
-void Text::init_prefixes_if_need() {
-  static bool initialized;
-
-  if (!initialized) {
-    s_prefixes = {
-      "<b>~r~Error<r> ~d~|<r> ",
-      "<b>~y~Warning<r> ~d~|<r> ",
-      "<b>~c~Note<r> ~d~|<r> "
-    };
-    initialized = true;
-  }
+auto Text::init_prefixes() -> prefixes_t {
+  return prefixes_t{{
+    "<b>~r~Error<r> ~d~|<r> ",
+    "<b>~y~Warning<r> ~d~|<r> ",
+    "<b>~c~Note<r> ~d~|<r> "
+  }};
 }

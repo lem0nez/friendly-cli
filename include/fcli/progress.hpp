@@ -30,6 +30,7 @@
 
 #include "indicator.hpp"
 #include "internal/enum_array.hpp"
+#include "internal/lazy_init.hpp"
 #include "terminal.hpp"
 #include "theme.hpp"
 
@@ -38,6 +39,7 @@ namespace fcli {
   public:
     // Styles of progress parts.
     enum class Style {
+      PLAIN,
       // Determined progress only.
       LOADING_BAR,
       PERCENTS,
@@ -89,11 +91,19 @@ namespace fcli {
     };
 
     Progress() = default;
+    inline ~Progress() { hide(); }
+
     // Attention: text formatting isn't supported.
     Progress(std::string_view text, bool determined,
         unsigned short width = Terminal().get_width(),
         std::ostream& ostream = std::cout);
-    inline ~Progress() { hide(); }
+
+    inline Progress(std::string_view text, bool determined,
+        const std::optional<Terminal::ColorsSupport>& colors_support,
+        const Palette& palette = Theme::get_palette()):
+
+        m_text(text), m_determined(determined)
+        { fill_styles(colors_support, palette); }
 
     // Attention: output stream and hide status are not copied.
     Progress(const Progress&);
@@ -105,8 +115,9 @@ namespace fcli {
     // Initially, progress is hidden.
     void show();
     void hide();
-    // Result message automatically hides progress.
-    void finish(bool success, std::string_view message, bool format = true);
+    // Result message automatically hides progress. If you want
+    // to format the message then you should do it manually.
+    void finish(bool success, std::string_view message);
 
     // Percents control.
     auto operator++() -> Progress&;
@@ -144,15 +155,11 @@ namespace fcli {
     inline void set_indicator(BuiltInIndicator name)
         { set_indicator(get_indicator(name)); }
 
-    [[nodiscard]] auto get_palette() const -> Palette;
-    void set_palette(const Palette&);
-
-    [[nodiscard]] auto get_colors_support() const ->
-        std::optional<Terminal::ColorsSupport>;
-    void set_colors_support(const std::optional<Terminal::ColorsSupport>&);
-
-    [[nodiscard]] auto get_style(Style) const -> std::string;
-    void set_style(Style, std::string_view);
+    // String must contain ONLY format specifiers.
+    void set_style(Style, std::string_view,
+        const std::optional<Terminal::ColorsSupport>& =
+            Terminal::get_cached_colors_support(),
+        const Palette& = Theme::get_palette());
 
     [[nodiscard]] inline auto get_success_symbol() const
         { return m_success_symbol; }
@@ -177,27 +184,27 @@ namespace fcli {
     [[nodiscard]] static auto get_success_symbol(SuccessSymbol) -> std::string;
     [[nodiscard]] static auto get_failure_symbol(FailureSymbol) -> std::string;
 
+    // Default styles of all new objects.
+    [[nodiscard]] static inline auto get_default_style(Style name)
+        { return s_styles->get(name); }
+    static inline void set_default_style(Style name, std::string_view style)
+        { s_styles->set(name, std::string(style)); }
+
   private:
+    using styles_t = internal::EnumArray<Style, std::string>;
+
+    // Called once on object creation.
+    void fill_styles(
+        const std::optional<Terminal::ColorsSupport>& =
+            Terminal::get_cached_colors_support(),
+        const Palette& = Theme::get_palette());
+    // Attention: it doesn't lock mutex automatically.
+    void copy_non_atomic(const Progress&);
+
     // Main function that updates progress.
     void update();
     // Used to notify updater for new changes.
     void notify();
-    // Attention: it doesn't lock mutex automatically.
-    void copy_non_atomic(const Progress&);
-
-    [[nodiscard]] static inline auto get_empty_line(unsigned short width)
-        { return '\r' + std::string(width, ' ') + '\r'; }
-
-    static constexpr std::chrono::milliseconds DOTS_UPDATE_INTERVAL{1000};
-    static constexpr std::size_t MAX_DOTS = 3U;
-    static constexpr double MAX_PERCENTS = 100.0;
-    static constexpr unsigned short
-        MAX_WIDTH = static_cast<std::size_t>(MAX_PERCENTS),
-        MIN_WIDTH = std::max(
-            // Determined progress size. 1U is terminating null.
-            MAX_DOTS + std::size(" 100.0%") - 1U,
-            // Undetermined progress size. 2U is spaces around an indicator.
-            2U + Indicator::MAX_FRAME_SIZE + MAX_DOTS);
 
     std::string m_text;
     std::atomic<bool> m_determined{};
@@ -213,12 +220,7 @@ namespace fcli {
     // Set to true when indicator is changed. Used by updater.
     std::atomic<bool> m_invalidate_frame_it{};
 
-    Palette m_palette{Theme::get_palette()};
-    std::optional<Terminal::ColorsSupport>
-        m_colors_support{Terminal::get_cached_colors_support()};
-
-    internal::EnumArray<Style, std::string> m_styles
-        {{"~B~", "<b>", "<b>~y~", "<b>~g~", "<b>~r~"}};
+    styles_t m_formatted_styles{};
     // Updater doesn't use this members, so mutex lock doesn't required.
     std::string
         m_success_symbol{get_success_symbol(SuccessSymbol::_DEFAULT)},
@@ -232,5 +234,27 @@ namespace fcli {
     bool m_force_update{};
     std::condition_variable m_force_update_cv;
     mutable std::mutex m_force_update_mut;
+
+    /*
+     * Private static members and functions.
+     */
+
+    static constexpr std::chrono::milliseconds DOTS_UPDATE_INTERVAL{1000};
+    static constexpr std::size_t MAX_DOTS = 3U;
+    static constexpr double MAX_PERCENTS = 100.0;
+    static constexpr unsigned short
+        MAX_WIDTH = static_cast<std::size_t>(MAX_PERCENTS),
+        MIN_WIDTH = std::max(
+            // Determined progress size. 1U is terminating null.
+            MAX_DOTS + std::size(" 100.0%") - 1U,
+            // Undetermined progress size. 2U is spaces around an indicator.
+            2U + Indicator::MAX_FRAME_SIZE + MAX_DOTS);
+
+    [[nodiscard]] static inline auto get_empty_line(unsigned short width)
+        { return '\r' + std::string(width, ' ') + '\r'; }
+
+    [[nodiscard]] static inline auto init_styles() -> styles_t
+        { return styles_t{{"<r>", "~B~", "<b>", "<b>~y~", "<b>~g~", "<b>~r~"}}; }
+    static inline internal::LazyInit<styles_t> s_styles{init_styles};
   };
 } // Namespace fcli.

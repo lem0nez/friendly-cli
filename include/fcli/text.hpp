@@ -21,6 +21,7 @@
 #include <string>
 
 #include "internal/enum_array.hpp"
+#include "internal/lazy_init.hpp"
 #include "terminal.hpp"
 #include "theme.hpp"
 
@@ -70,8 +71,10 @@ namespace fcli {
           colors_support, palette);
     }
 
-    [[nodiscard]] static auto get_message_prefix(Message) -> std::string;
-    static void set_message_prefix(Message, std::string_view);
+    [[nodiscard]] static inline auto get_message_prefix(Message type) ->
+        std::string { return s_prefixes->get(type); }
+    static inline void set_message_prefix(Message type, std::string_view prefix)
+        { s_prefixes->set(type, std::string(prefix)); }
 
     // Just disable colors support to remove specifiers.
     static inline void remove_specifiers(std::string& str) { format(str, {}); }
@@ -82,11 +85,12 @@ namespace fcli {
   private:
     static void replace_specifier(std::string& str,
         std::string_view from, std::string_view to);
-    // Don't initialize prefixes when declaring because
-    // string can throws exception that can't be caught.
-    static void init_prefixes_if_need();
 
-    static inline internal::EnumArray<Message, std::string> s_prefixes;
+    using prefixes_t = internal::EnumArray<Message, std::string>;
+    [[nodiscard]] static auto init_prefixes() -> prefixes_t;
+    // Don't initialize prefixes when declaring because
+    // string can throws an exception that can't be caught.
+    static inline internal::LazyInit<prefixes_t> s_prefixes{init_prefixes};
   };
 
   namespace literals {

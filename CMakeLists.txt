@@ -55,6 +55,8 @@ install(FILES ${CMAKE_BINARY_DIR}/fcli.pc
 # + ----- +
 
 set(TEST_SOURCES
+    test/internal/enum_array.cpp
+    test/internal/lazy_init.cpp
     test/main.cpp
     test/progress.cpp
     test/terminal.cpp
