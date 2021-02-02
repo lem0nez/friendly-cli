@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 - User input handler.
 - List generator.
 
+## [1.1.0] - 2021-02-03
 ### Changed
 - Progress: pre-format styles.
 
@@ -17,4 +18,5 @@ All notable changes to this project will be documented in this file.
 - Initial release.
 
 [Unreleased]: https://github.com/lem0nez/friendly-cli/compare/v1.0.0...HEAD
+[1.1.0]: https://github.com/lem0nez/friendly-cli/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lem0nez/friendly-cli/releases/tag/v1.0.0
