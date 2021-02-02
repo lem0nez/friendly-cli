@@ -18,11 +18,13 @@
 #pragma once
 
 #include <array>
+#include <functional>
 #include <utility>
 
 namespace fcli::internal {
   // E is enumerator class and V is values type.
-  template<class E, class V, auto size = static_cast<std::size_t>(E::_COUNT)>
+  template<class E, class V,
+      std::size_t size = static_cast<std::size_t>(E::_COUNT)>
   // Wrapper around standard array, where
   // key is a field of enumerator class.
   class EnumArray {
@@ -30,7 +32,7 @@ namespace fcli::internal {
 
   public:
     constexpr EnumArray() = default;
-    constexpr explicit EnumArray(arr_t orig): m_arr(std::move(orig)) {}
+    constexpr explicit EnumArray(arr_t other): m_arr(std::move(other)) {}
 
     [[nodiscard]] constexpr auto get(E elem) const -> const V&
         { return m_arr.at(static_cast<std::size_t>(elem)); }
@@ -39,9 +41,10 @@ namespace fcli::internal {
 
     [[nodiscard]] constexpr auto exists(E elem) const
         { return size > static_cast<std::size_t>(elem); }
+    void for_each(const std::function<void(E)>& function) const;
 
-    constexpr auto operator=(const arr_t& orig) -> EnumArray& {
-      m_arr = orig;
+    constexpr auto operator=(const arr_t& other) -> EnumArray& {
+      m_arr = other;
       return *this;
     }
     [[nodiscard]] constexpr auto operator[](E elem) -> V&
@@ -51,3 +54,5 @@ namespace fcli::internal {
     arr_t m_arr;
   };
 } // Namespace fcli::internal.
+
+#include "enum_array.inl"

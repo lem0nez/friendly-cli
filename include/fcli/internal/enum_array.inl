@@ -15,21 +15,13 @@
  * limitations under the License.
  */
 
-#include "doctest/doctest.h"
-#include "fcli/internal/enum_array.hpp"
+namespace fcli::internal {
+  template<class E, class V, std::size_t size>
+  void EnumArray<E, V, size>::for_each(
+      const std::function<void(E)>& t_function) const {
 
-using namespace fcli::internal;
-
-TEST_CASE("Functions and operators") {
-  enum class Digit {ZERO, ONE, TWO, _COUNT};
-  EnumArray<Digit, unsigned short> arr{{0U, 1U, 2U}};
-
-  SUBCASE("exists") {
-    CHECK_FALSE(arr.exists(Digit::_COUNT));
+    for (std::size_t i = 0U; i != size; ++i) {
+      t_function(static_cast<E>(i));
+    }
   }
-  SUBCASE("for_each and operator[]") {
-    arr.for_each([&arr] (Digit name) {
-      CHECK(arr[name] == static_cast<unsigned short>(name));
-    });
-  }
-}
+} // Namespace fcli::internal.
