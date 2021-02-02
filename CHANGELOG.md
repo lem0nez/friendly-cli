@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 - User input handler.
 - List generator.
 
+### Changed
+- Progress: pre-format styles.
+
 ### Fixed
 - Compilation using `clang`
 

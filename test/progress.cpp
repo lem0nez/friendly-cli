@@ -21,6 +21,7 @@
 #include "doctest/doctest.h"
 #include "fcli/progress.hpp"
 
+using namespace doctest;
 using namespace fcli;
 using namespace std;
 
@@ -31,7 +32,10 @@ TEST_CASE("Width handling") {
   CHECK_THROWS_AS(progress.set_width(0U), Progress::no_space_error);
 }
 
-TEST_CASE("Progress is displayed") {
+TEST_CASE("Progress is displayed" *
+          description("Progress should be hidden immediately after a request") *
+          timeout(0.1)) {
+
   ostringstream ostream;
   Progress progress({}, false, numeric_limits<unsigned short>::max(), ostream);
   progress.show();
