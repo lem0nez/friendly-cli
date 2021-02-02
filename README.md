@@ -96,7 +96,7 @@ Determined progress has percents and it shows loading bar as background color:
 ```cpp
 // Reuse previously created progress.
 progress.set_determimed(true);
-// You can change using the assignment operator.
+// You can change text using the assignment operator.
 progress = "Downloading the Internet";
 // And percents too.
 progress = 42.0;
@@ -111,5 +111,5 @@ required if you want to build the unit tests (`BUILD_TESTING` option).
 mkdir build
 cd build
 cmake .. -DBUILD_TESTING=<ON/OFF>
-make
+cmake --build .
 ```

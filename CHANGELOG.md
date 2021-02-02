@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 - User input handler.
 - List generator.
 
+### Fixed
+- Compilation using `clang`
+
 ## [1.0.0] - 2021-01-29
 ### Added
 - Initial release.

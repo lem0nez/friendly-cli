@@ -249,7 +249,7 @@ void Progress::update() {
             min(DOTS_UPDATE_INTERVAL - update_dots_passed_time, wait_time);
       }
     } else {
-      dots = {};
+      dots.clear();
     }
 
     // Trim text from the end if need.
