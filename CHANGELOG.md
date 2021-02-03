@@ -3,12 +3,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
-- User input handler.
-- List generator.
+- `Progress`: new constructor.
+
+### Changed
+- `Progress`: set width to minimum if it not specified.
 
 ## [1.1.0] - 2021-02-03
 ### Changed
-- Progress: pre-format styles.
+- `Progress`: pre-format styles.
 
 ### Fixed
 - Compilation using `clang`.

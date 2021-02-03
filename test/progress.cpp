@@ -37,7 +37,7 @@ TEST_CASE("Progress is displayed" *
           timeout(0.1)) {
 
   ostringstream ostream;
-  Progress progress({}, false, numeric_limits<unsigned short>::max(), ostream);
+  Progress progress({}, false, ostream);
   progress.show();
   progress.hide();
   CHECK_FALSE(ostream.str().empty());

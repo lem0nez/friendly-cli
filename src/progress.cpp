@@ -27,14 +27,16 @@ using namespace fcli;
 using namespace std;
 
 Progress::Progress(string_view t_text, bool t_determined,
-    unsigned short t_width, ostream& t_ostream):
-    m_text(t_text), m_determined(t_determined),
-    m_width(min(t_width, MAX_WIDTH)), m_ostream(t_ostream) {
+    unsigned short t_width,
+    const optional<Terminal::ColorsSupport>& t_colors_support,
+    const Palette& t_palette):
+
+    m_text(t_text), m_determined(t_determined), m_width(t_width),
+    m_formatted_styles(format_default_styles(t_colors_support, t_palette)) {
 
   if (t_width < MIN_WIDTH) {
     throw no_space_error();
   }
-  fill_styles();
 }
 
 Progress::Progress(const Progress& t_other):
@@ -59,16 +61,6 @@ auto Progress::operator=(const Progress& t_other) -> Progress& {
     notify();
   }
   return *this;
-}
-
-void Progress::fill_styles(
-    const optional<Terminal::ColorsSupport>& t_colors_support,
-    const Palette& t_palette) {
-
-  m_formatted_styles.for_each([&] (Style name) {
-    m_formatted_styles.set(name,
-        Text::format_copy(s_styles->get(name), t_colors_support, t_palette));
-  });
 }
 
 void Progress::copy_non_atomic(const Progress& t_other) {
@@ -124,6 +116,10 @@ void Progress::notify() {
   m_force_update_mut.unlock();
   m_force_update_cv.notify_one();
 }
+
+/*
+ * Operators.
+ */
 
 auto Progress::operator++() -> Progress& {
   set_percents(m_percents + 1.0);
@@ -377,6 +373,18 @@ void Progress::set_style(Style t_part, string_view t_style,
 /*
  * Static functions.
  */
+
+auto Progress::format_default_styles(
+    const optional<Terminal::ColorsSupport>& t_colors_support,
+    const Palette& t_palette) -> styles_t {
+
+  styles_t formatted_styles;
+  s_default_styles->for_each([&] (Style name) {
+    formatted_styles.set(name, Text::format_copy(
+        s_default_styles->get(name), t_colors_support, t_palette));
+  });
+  return formatted_styles;
+}
 
 auto Progress::get_indicator(BuiltInIndicator t_name) -> Indicator {
   using namespace chrono_literals;

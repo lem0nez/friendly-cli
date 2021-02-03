@@ -27,6 +27,7 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 
 #include "indicator.hpp"
 #include "internal/enum_array.hpp"
@@ -93,17 +94,20 @@ namespace fcli {
     Progress() = default;
     inline ~Progress() { hide(); }
 
-    // Attention: text formatting isn't supported.
-    Progress(std::string_view text, bool determined,
-        unsigned short width = Terminal().get_width(),
-        std::ostream& ostream = std::cout);
-
-    inline Progress(std::string_view text, bool determined,
-        const std::optional<Terminal::ColorsSupport>& colors_support,
+    // Width will be set to minimum.
+    Progress(std::string_view text, bool determined, std::ostream& ostream,
+        const std::optional<Terminal::ColorsSupport>& colors_support =
+            Terminal::get_cached_colors_support(),
         const Palette& palette = Theme::get_palette()):
 
-        m_text(text), m_determined(determined)
-        { fill_styles(colors_support, palette); }
+        m_text(text), m_determined(determined), m_ostream(ostream),
+        m_formatted_styles(format_default_styles(colors_support, palette)) {}
+
+    // Output stream will be set to standard.
+    Progress(std::string_view text, bool determined, unsigned short width,
+        const std::optional<Terminal::ColorsSupport>& colors_support =
+            Terminal::get_cached_colors_support(),
+        const Palette& palette = Theme::get_palette());
 
     // Attention: output stream and hide status are not copied.
     Progress(const Progress&);
@@ -130,6 +134,7 @@ namespace fcli {
      * Getters / setters.
      */
 
+    // Text formatting isn't supported.
     [[nodiscard]] auto get_text() const -> std::string;
     void set_text(std::string_view);
 
@@ -186,21 +191,15 @@ namespace fcli {
 
     // Default styles of all new objects.
     [[nodiscard]] static inline auto get_default_style(Style name)
-        { return s_styles->get(name); }
+        { return s_default_styles->get(name); }
     static inline void set_default_style(Style name, std::string_view style)
-        { s_styles->set(name, std::string(style)); }
+        { s_default_styles->set(name, std::string(style)); }
 
   private:
     using styles_t = internal::EnumArray<Style, std::string>;
 
-    // Called once on object creation.
-    void fill_styles(
-        const std::optional<Terminal::ColorsSupport>& =
-            Terminal::get_cached_colors_support(),
-        const Palette& = Theme::get_palette());
     // Attention: it doesn't lock mutex automatically.
     void copy_non_atomic(const Progress&);
-
     // Main function that updates progress.
     void update();
     // Used to notify updater for new changes.
@@ -208,7 +207,7 @@ namespace fcli {
 
     std::string m_text;
     std::atomic<bool> m_determined{};
-    std::atomic<unsigned short> m_width{Terminal().get_width()};
+    std::atomic<unsigned short> m_width{MIN_WIDTH};
     std::ostream& m_ostream{std::cout};
 
     std::atomic<bool> m_hidden{true};
@@ -220,7 +219,7 @@ namespace fcli {
     // Set to true when indicator is changed. Used by updater.
     std::atomic<bool> m_invalidate_frame_it{};
 
-    styles_t m_formatted_styles{};
+    styles_t m_formatted_styles{format_default_styles()};
     // Updater doesn't use this members, so mutex lock doesn't required.
     std::string
         m_success_symbol{get_success_symbol(SuccessSymbol::_DEFAULT)},
@@ -253,8 +252,16 @@ namespace fcli {
     [[nodiscard]] static inline auto get_empty_line(unsigned short width)
         { return '\r' + std::string(width, ' ') + '\r'; }
 
-    [[nodiscard]] static inline auto init_styles() -> styles_t
-        { return styles_t{{"<r>", "~B~", "<b>", "<b>~y~", "<b>~g~", "<b>~r~"}}; }
-    static inline internal::LazyInit<styles_t> s_styles{init_styles};
+    // Called once on object creation.
+    static auto format_default_styles(
+        const std::optional<Terminal::ColorsSupport>& =
+            Terminal::get_cached_colors_support(),
+        const Palette& = Theme::get_palette()) -> styles_t;
+
+    [[nodiscard]] static inline auto init_default_styles() -> styles_t {
+      return styles_t{{"<r>", "~B~", "<b>", "<b>~y~", "<b>~g~", "<b>~r~"}};
+    }
+    static inline internal::LazyInit<styles_t>
+        s_default_styles{init_default_styles};
   };
 } // Namespace fcli.
