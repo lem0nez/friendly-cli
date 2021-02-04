@@ -41,7 +41,7 @@ namespace fcli::internal {
 
     [[nodiscard]] constexpr auto exists(E elem) const
         { return size > static_cast<std::size_t>(elem); }
-    void for_each(const std::function<void(E)>& function) const;
+    void for_each(const std::function<void(E, V&)>& function);
 
     constexpr auto operator=(const arr_t& other) -> EnumArray& {
       m_arr = other;
@@ -51,7 +51,7 @@ namespace fcli::internal {
         { return m_arr[static_cast<std::size_t>(elem)]; }
 
   private:
-    arr_t m_arr;
+    arr_t m_arr{};
   };
 } // Namespace fcli::internal.
 

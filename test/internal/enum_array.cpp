@@ -22,14 +22,13 @@ using namespace fcli::internal;
 
 TEST_CASE("Functions and operators") {
   enum class Digit {ZERO, ONE, TWO, _COUNT};
-  EnumArray<Digit, unsigned short> arr{{0U, 1U, 2U}};
+  EnumArray<Digit, unsigned short> arr;
 
-  SUBCASE("exists") {
-    CHECK_FALSE(arr.exists(Digit::_COUNT));
-  }
-  SUBCASE("for_each and operator[]") {
-    arr.for_each([&arr] (Digit name) {
-      CHECK(arr[name] == static_cast<unsigned short>(name));
-    });
-  }
+  CHECK_FALSE(arr.exists(Digit::_COUNT));
+  arr = {0U, 1U, 2U};
+
+  arr.for_each([&arr] (Digit name, unsigned short& /* val */) {
+    REQUIRE(arr.exists(name));
+    CHECK(arr[name] == static_cast<unsigned short>(name));
+  });
 }

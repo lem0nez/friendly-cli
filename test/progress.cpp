@@ -20,6 +20,7 @@
 
 #include "doctest/doctest.h"
 #include "fcli/progress.hpp"
+#include "fcli/terminal.hpp"
 
 using namespace doctest;
 using namespace fcli;
@@ -33,12 +34,32 @@ TEST_CASE("Width handling") {
 }
 
 TEST_CASE("Progress is displayed" *
-          description("Progress should be hidden immediately after a request") *
+          description("it should be hidden immediately after a request") *
           timeout(0.1)) {
 
-  ostringstream ostream;
-  Progress progress({}, false, ostream);
+  ostringstream oss;
+  Progress progress({}, false, oss);
   progress.show();
   progress.hide();
-  CHECK_FALSE(ostream.str().empty());
+  CHECK_FALSE(oss.str().empty());
+}
+
+TEST_CASE("Result messages") {
+  ostringstream oss;
+  Progress progress({}, {}, oss);
+
+  progress.set_style(Progress::Style::PLAIN, "<r>",
+      Terminal::ColorsSupport::HAS_8_COLORS);
+  progress.set_style(Progress::Style::SUCCESS_SYMBOL, "<b>",
+      Terminal::ColorsSupport::HAS_8_COLORS);
+  progress.set_success_symbol("+");
+  progress.finish(true, "success");
+  CHECK(oss.str() == " \033[1m+\033[0m success\n");
+  oss.str({});
+
+  progress.set_style(Progress::Style::PLAIN, "<u>", {});
+  progress.set_style(Progress::Style::FAILURE_SYMBOL, "<i>", {});
+  progress.set_failure_symbol("-");
+  progress.finish(false, "failure");
+  CHECK(oss.str() == " - failure\n");
 }

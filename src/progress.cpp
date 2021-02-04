@@ -204,19 +204,21 @@ void Progress::update() {
       // Plus one space that will be placed later.
       space_for_text -= percents.length() + 1U;
     } else {
-      update_frame_passed_time += passed_time;
+      // Iterator invalidates when new indicator is set.
+      if (m_invalidate_frame_it) {
+        frame_it = m_indicator.frames.cbegin();
+        m_invalidate_frame_it = false;
+        // Immediately show new frame.
+        update_frame_passed_time = m_indicator.update_interval;
+      } else {
+        update_frame_passed_time += passed_time;
+      }
 
       if (update_frame_passed_time >= m_indicator.update_interval) {
         update_frame_passed_time = 0ms;
 
-        // Iterator invalidates when container of frames is updated.
-        if (m_invalidate_frame_it) {
-          frame_it = m_indicator.frames.cbegin();
-          m_invalidate_frame_it = false;
-        }
-
         // Don't store formatted styles here as they can be changed and
-        // user will wait for new indicator iteration to view changes.
+        // user will wait for new indicator iteration to see changes.
         indicator = frame_it->substr(0U, Indicator::MAX_FRAME_SIZE);
         // 2U is spaces around indicator.
         space_for_text -= 2U + m_indicator.fixed_visible_length;
@@ -379,9 +381,9 @@ auto Progress::format_default_styles(
     const Palette& t_palette) -> styles_t {
 
   styles_t formatted_styles;
-  s_default_styles->for_each([&] (Style name) {
-    formatted_styles.set(name, Text::format_copy(
-        s_default_styles->get(name), t_colors_support, t_palette));
+  s_default_styles->for_each([&] (Style name, string& style) {
+    formatted_styles.set(name,
+        Text::format_copy(style, t_colors_support, t_palette));
   });
   return formatted_styles;
 }
@@ -397,15 +399,15 @@ auto Progress::get_indicator(BuiltInIndicator t_name) -> Indicator {
 }
 
 auto Progress::get_success_symbol(SuccessSymbol t_name) -> string {
-  constexpr EnumArray<SuccessSymbol, string_view> symbols{{
+  constexpr EnumArray<SuccessSymbol, string_view> symbols({
     "+", "\u2022", "\u2713", "\u2714"
-  }};
+  });
   return string(symbols.get(t_name));
 }
 
 auto Progress::get_failure_symbol(FailureSymbol t_name) -> string {
-  constexpr EnumArray<FailureSymbol, string_view> symbols{{
+  constexpr EnumArray<FailureSymbol, string_view> symbols({
     "-", "\u2022", "\u00d7", "\u2716"
-  }};
+  });
   return string(symbols.get(t_name));
 }

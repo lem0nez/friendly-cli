@@ -27,7 +27,6 @@
 #include <optional>
 #include <string>
 #include <thread>
-#include <utility>
 
 #include "indicator.hpp"
 #include "internal/enum_array.hpp"
@@ -259,7 +258,7 @@ namespace fcli {
         const Palette& = Theme::get_palette()) -> styles_t;
 
     [[nodiscard]] static inline auto init_default_styles() -> styles_t {
-      return styles_t{{"<r>", "~B~", "<b>", "<b>~y~", "<b>~g~", "<b>~r~"}};
+      return styles_t({"<r>", "~B~", "<b>", "<b>~y~", "<b>~g~", "<b>~r~"});
     }
     static inline internal::LazyInit<styles_t>
         s_default_styles{init_default_styles};

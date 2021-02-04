@@ -26,7 +26,7 @@ using namespace std;
 auto Theme::get_palette(Name t_name) -> Palette {
   using namespace fcli::internal;
 
-  const EnumArray<Name, Palette> palettes{{
+  const EnumArray<Name, Palette> palettes({
     get_default_palette(),
     // Material Light.
     {
@@ -46,7 +46,7 @@ auto Theme::get_palette(Name t_name) -> Palette {
       {110U, true}, {182U, true}, {116U, true},
       {249U, true}
     }
-  }};
+  });
 
   if (!palettes.exists(t_name)) {
     throw out_of_range("invalid palette index");

@@ -163,9 +163,9 @@ void Text::replace_specifier(string& t_str,
 }
 
 auto Text::init_prefixes() -> prefixes_t {
-  return prefixes_t{{
+  return prefixes_t({
     "<b>~r~Error<r> ~d~|<r> ",
     "<b>~y~Warning<r> ~d~|<r> ",
     "<b>~c~Note<r> ~d~|<r> "
-  }};
+  });
 }

@@ -2,11 +2,16 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [1.2.0] - 2021-02-04
 ### Added
 - `Progress`: new constructor.
 
 ### Changed
 - `Progress`: set width to minimum if it not specified.
+
+### Fixed
+- `Progress`: immediately update frame on indicator change.
 
 ## [1.1.0] - 2021-02-03
 ### Changed
@@ -19,6 +24,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial release.
 
-[Unreleased]: https://github.com/lem0nez/friendly-cli/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/lem0nez/friendly-cli/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/lem0nez/friendly-cli/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/lem0nez/friendly-cli/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lem0nez/friendly-cli/releases/tag/v1.0.0

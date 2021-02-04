@@ -19,7 +19,7 @@
 #include <memory>
 
 namespace fcli::internal {
-  // Initializes data of type T on the first access.
+  // Initializes member of type T on the first access.
   template<class T> class LazyInit {
     // Don't use std::function to preserve the
     // noexcept specifier of a constructor.
