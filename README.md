@@ -1,4 +1,4 @@
-![Build status](https://github.com/lem0nez/friendly-cli/workflows/CMake/badge.svg?branch=dev)
+![Build status](https://github.com/lem0nez/friendly-cli/workflows/CMake/badge.svg?branch=main)
 
 # Friendly CLI
 Lightweight feature-rich Linux library, that written in modern C++17 and doesn't
