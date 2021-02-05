@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fixed
+- `Progress`: limit maximum width by constructor.
 
 ## [1.2.0] - 2021-02-04
 ### Added

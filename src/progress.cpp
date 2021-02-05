@@ -31,7 +31,8 @@ Progress::Progress(string_view t_text, bool t_determined,
     const optional<Terminal::ColorsSupport>& t_colors_support,
     const Palette& t_palette):
 
-    m_text(t_text), m_determined(t_determined), m_width(t_width),
+    m_text(t_text), m_determined(t_determined),
+    m_width(min(t_width, MAX_WIDTH)),
     m_formatted_styles(format_default_styles(t_colors_support, t_palette)) {
 
   if (t_width < MIN_WIDTH) {

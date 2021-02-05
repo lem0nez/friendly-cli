@@ -113,3 +113,7 @@ cd build
 cmake .. -DBUILD_TESTING=<ON/OFF>
 cmake --build .
 ```
+
+## Social Preview
+This repository uses a generated Social Preview image from
+[@pqt/social-preview](https://github.com/pqt/social-preview).
