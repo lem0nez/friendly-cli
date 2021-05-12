@@ -63,7 +63,7 @@ Execution result for a terminal that supports 256 colors:
 `fcli::literals` namespace provides the user-defined string literals. For
 example, to format an error message use the `_err` literal:
 ```cpp
-cout << "Couldn't hack the Pentagon!"_err << endl;
+cerr << "Couldn't hack the Pentagon!"_err << endl;
 ```
 ![Couldn't hack the Pentagon](images/could-not-hack-the-pentagon.png)
 
