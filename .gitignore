@@ -1,9 +1,11 @@
 build/
-# Contains compiler specific flags.
+# Contains compiler-specific flags.
 compile_flags.txt
 # Clang formatting is completely disabled.
 .clang-format
 
-# Vim.
+# User configuration files.
+.vim/
 .vimrc
+# Saved workflow session.
 .session.vim
