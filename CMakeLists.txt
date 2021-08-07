@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 project(friendly-cli
-        VERSION 1.2.0
+        VERSION 1.3.0
         DESCRIPTION "\
 A modern C++ library for Linux that provides an \
 easy-to-use API for user interaction through CLI"

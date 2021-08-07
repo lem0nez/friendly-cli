@@ -58,6 +58,8 @@ namespace fcli {
         { return s_cached_colors_support; }
     static inline void cache_colors_support(ColorsSupport colors_support)
         { s_cached_colors_support = colors_support; }
+    static inline void uncache_colors_support()
+        { s_cached_colors_support.reset(); }
 
   private:
     // Null safety version of standard function.
