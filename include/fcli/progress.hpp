@@ -27,6 +27,7 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 
 #include "indicator.hpp"
 #include "internal/enum_array.hpp"
@@ -128,6 +129,8 @@ namespace fcli {
     auto operator=(double) -> Progress&;
     // Change text.
     auto operator=(std::string_view) -> Progress&;
+    // Change both text and percents.
+    auto operator=(const std::pair<std::string, double>&) -> Progress&;
 
     /*
      * Getters / setters.
@@ -135,7 +138,8 @@ namespace fcli {
 
     // Text formatting isn't supported.
     [[nodiscard]] auto get_text() const -> std::string;
-    void set_text(std::string_view);
+    inline void set_text(std::string_view text)
+        { set_info(std::string(text), {}); };
 
     [[nodiscard]] inline auto is_determined() const
         { return m_determined.load(); }
@@ -152,7 +156,21 @@ namespace fcli {
     void set_append_dots(bool);
 
     [[nodiscard]] inline auto get_percents() const { return m_percents.load(); }
-    void set_percents(double);
+    inline void set_percents(double percents) { set_info({}, percents); };
+
+    // Applies or postpones passed information.
+    void set_info(const std::optional<std::string>& text,
+        std::optional<double> percents);
+    /*
+     * Changes the minimum interval between information (text and percents)
+     * updates. Pass zero (that is default for an instance) to remove the
+     * limitation.
+     */
+    void set_info_update_interval(std::chrono::milliseconds);
+    [[nodiscard]] inline auto get_info_update_interval() const
+        { return m_info_update_interval.load(); }
+    [[nodiscard]] auto get_pending_text() const -> std::optional<std::string>;
+    [[nodiscard]] auto get_pending_percents() const -> std::optional<double>;
 
     [[nodiscard]] auto get_indicator() const -> Indicator;
     void set_indicator(const Indicator&);
@@ -197,6 +215,7 @@ namespace fcli {
   private:
     using styles_t = internal::EnumArray<Style, std::string>;
 
+    void copy_percents(const Progress&);
     // Attention: it doesn't lock mutex automatically.
     void copy_non_atomic(const Progress&);
     // Main function that updates progress.
@@ -217,6 +236,13 @@ namespace fcli {
     Indicator m_indicator{get_indicator(BuiltInIndicator::_DEFAULT)};
     // Set to true when indicator is changed. Used by updater.
     std::atomic<bool> m_invalidate_frame_it{};
+
+    std::atomic<std::chrono::milliseconds> m_info_update_interval{};
+    std::atomic<std::chrono::time_point<std::chrono::steady_clock>>
+        m_next_info_update{std::chrono::steady_clock::now()};
+    std::optional<std::string> m_pending_text;
+    // A negative value means there is no pending percents value.
+    std::atomic<double> m_pending_percents{-1.0};
 
     styles_t m_formatted_styles{format_default_styles()};
     // Updater doesn't use this members, so mutex lock doesn't required.

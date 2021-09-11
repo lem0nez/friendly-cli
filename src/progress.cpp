@@ -22,9 +22,12 @@
 #include "fcli/progress.hpp"
 #include "fcli/text.hpp"
 
-using namespace fcli::internal;
-using namespace fcli;
 using namespace std;
+using namespace chrono;
+using namespace chrono_literals;
+
+using namespace fcli;
+using namespace fcli::internal;
 
 Progress::Progress(string_view t_text, bool t_determined,
     unsigned short t_width,
@@ -44,8 +47,9 @@ Progress::Progress(const Progress& t_other):
     m_determined(t_other.m_determined.load()),
     m_width(t_other.m_width.load()),
     m_append_dots(t_other.m_append_dots.load()),
-    m_percents(t_other.m_percents.load()) {
+    m_info_update_interval(t_other.m_info_update_interval.load()) {
 
+  copy_percents(t_other);
   lock_guard lock(t_other.m_mut);
   copy_non_atomic(t_other);
 }
@@ -55,8 +59,9 @@ auto Progress::operator=(const Progress& t_other) -> Progress& {
     m_determined = t_other.m_determined.load();
     m_width = t_other.m_width.load();
     m_append_dots = t_other.m_append_dots.load();
-    m_percents = t_other.m_percents.load();
+    m_info_update_interval = t_other.m_info_update_interval.load();
 
+    copy_percents(t_other);
     scoped_lock locks{m_mut, t_other.m_mut};
     copy_non_atomic(t_other);
     notify();
@@ -64,8 +69,21 @@ auto Progress::operator=(const Progress& t_other) -> Progress& {
   return *this;
 }
 
+void Progress::copy_percents(const Progress& t_other) {
+  const auto pending_percents = t_other.m_pending_percents.load();
+  if (pending_percents >= 0.0) {
+    m_percents = pending_percents;
+  } else {
+    m_percents = t_other.m_percents.load();
+  }
+}
+
 void Progress::copy_non_atomic(const Progress& t_other) {
-  m_text = t_other.m_text;
+  if (t_other.m_pending_text) {
+    m_text = *t_other.m_pending_text;
+  } else {
+    m_text = t_other.m_text;
+  }
   m_formatted_styles = t_other.m_formatted_styles;
 
   m_indicator = t_other.m_indicator;
@@ -142,14 +160,16 @@ auto Progress::operator=(string_view t_text) -> Progress& {
   return *this;
 }
 
+auto Progress::operator=(const pair<string, double>& t_info) -> Progress& {
+  set_info(t_info.first, t_info.second);
+  return *this;
+}
+
 /*
  * Main logic.
  */
 
 void Progress::update() {
-  using namespace chrono;
-  using namespace chrono_literals;
-
   // Used to measure passed time.
   auto prev_time_point = steady_clock::now();
   milliseconds
@@ -167,15 +187,20 @@ void Progress::update() {
   size_t dots_count = 0U;
 
   unsigned short space_for_text = 0U;
-  ostringstream percents_oss;
   size_t loading_bar_end_pos = 0U;
   string indicator, text, dots, percents, result;
+
+  ostringstream percents_oss;
+  percents_oss << fixed;
+  percents_oss.precision(1);
 
   // Cached values (that used at least twice during
   // progress generation) of atomic members.
   bool determined_cached = false;
   unsigned short width_cached = 0U;
   double percents_cached = 0.0;
+  milliseconds info_update_interval_cached;
+  time_point<steady_clock> next_info_update_cached;
 
   // Don't use milliseconds::max() as it leads to overflow.
   constexpr milliseconds MAX_WAIT_TIME = 1h;
@@ -186,6 +211,8 @@ void Progress::update() {
     wait_time = MAX_WAIT_TIME;
     determined_cached = m_determined;
     percents_cached = m_percents;
+    info_update_interval_cached = m_info_update_interval;
+    next_info_update_cached = m_next_info_update;
     space_for_text = width_cached = m_width;
 
     /*
@@ -199,7 +226,17 @@ void Progress::update() {
       percents_oss.str({});
       percents_oss.clear();
 
-      percents_oss << fixed << setprecision(1) << percents_cached << '%';
+      // Is it time to release all pending values?
+      if (next_info_update_cached <= prev_time_point) {
+        const auto pending_percents = m_pending_percents.load();
+        // Is there pending percents value?
+        if (pending_percents >= 0.0) {
+          m_percents = percents_cached = pending_percents;
+          m_pending_percents = -1.0;
+          m_next_info_update = prev_time_point + info_update_interval_cached;
+        }
+      }
+      percents_oss << percents_cached << '%';
       percents = percents_oss.str();
 
       // Plus one space that will be placed later.
@@ -255,6 +292,16 @@ void Progress::update() {
       dots.clear();
     }
 
+    if (next_info_update_cached <= prev_time_point) {
+      if (m_pending_text) {
+        m_text = *m_pending_text;
+        m_pending_text.reset();
+        m_next_info_update = prev_time_point + info_update_interval_cached;
+      }
+    } else {
+      wait_time = min(duration_cast<milliseconds>(
+          next_info_update_cached - prev_time_point), wait_time);
+    }
     // Trim text from the end if need.
     text = m_text.substr(0U, space_for_text);
 
@@ -317,12 +364,6 @@ auto Progress::get_text() const -> string {
   return m_text;
 }
 
-void Progress::set_text(string_view t_text) {
-  lock_guard lock(m_mut);
-  m_text = t_text;
-  notify();
-}
-
 void Progress::set_determined(bool t_determined) {
   m_determined = t_determined;
   notify();
@@ -346,9 +387,70 @@ void Progress::set_append_dots(bool t_enable) {
   notify();
 }
 
-void Progress::set_percents(double t_percents) {
-  m_percents = min(t_percents, MAX_PERCENTS);
+void Progress::set_info(const optional<string>& t_text,
+    optional<double> t_percents) {
+  if (t_percents) {
+    t_percents = clamp(*t_percents, 0.0, MAX_PERCENTS);
+  }
+  lock_guard lock(m_mut);
+
+  if (const auto update_interval = m_info_update_interval.load();
+      update_interval != 0ms) {
+    const auto current_time = steady_clock::now();
+    if (m_next_info_update.load() > current_time) {
+      if (t_text) {
+        m_pending_text = t_text;
+      }
+      if (t_percents) {
+        m_pending_percents = *t_percents;
+      }
+      return;
+    }
+    m_next_info_update = current_time + update_interval;
+  }
+
+  if (t_text) {
+    m_text = *t_text;
+  } else if (m_pending_text) {
+    m_text = *m_pending_text;
+  }
+  m_pending_text.reset();
+
+  if (t_percents) {
+    m_percents = *t_percents;
+  } else if (const auto pending_percents = m_pending_percents.load();
+      pending_percents >= 0.0) {
+    m_percents = pending_percents;
+  }
+  m_pending_percents = -1.0;
+
   notify();
+}
+
+void Progress::set_info_update_interval(milliseconds t_interval) {
+  m_info_update_interval = t_interval;
+  const auto
+      next_info_update = m_next_info_update.load(),
+      current_time = steady_clock::now();
+  if (next_info_update > current_time) {
+    const auto update_wait_time =
+        duration_cast<milliseconds>(next_info_update - current_time);
+    m_next_info_update = current_time + min(update_wait_time, t_interval);
+    notify();
+  }
+}
+
+auto Progress::get_pending_text() const -> optional<string> {
+  lock_guard lock(m_mut);
+  return m_pending_text;
+}
+
+auto Progress::get_pending_percents() const -> optional<double> {
+  const auto percents = m_pending_percents.load();
+  if (percents >= 0.0) {
+    return percents;
+  }
+  return {};
 }
 
 auto Progress::get_indicator() const -> Indicator {
@@ -390,8 +492,6 @@ auto Progress::format_default_styles(
 }
 
 auto Progress::get_indicator(BuiltInIndicator t_name) -> Indicator {
-  using namespace chrono_literals;
-
   const EnumArray<BuiltInIndicator, Indicator> indicators({{
     {125ms, 1U, {"-", "\\", "|", "/", "-", "\\", "|", "/"}},
     {500ms, 1U, {"\u2022", " "}}

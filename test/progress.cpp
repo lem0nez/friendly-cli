@@ -15,8 +15,11 @@
  * limitations under the License.
  */
 
+#include <chrono>
 #include <limits>
 #include <sstream>
+#include <thread>
+#include <utility>
 
 #include "doctest/doctest.h"
 #include "fcli/progress.hpp"
@@ -62,4 +65,40 @@ TEST_CASE("Result messages") {
   progress.set_failure_symbol("-");
   progress.finish(false, "failure");
   CHECK(oss.str() == " - failure\n");
+}
+
+TEST_CASE("Update interval of information") {
+  using namespace chrono_literals;
+
+  ostringstream oss;
+  Progress progress({}, true, oss);
+  progress.show();
+
+  progress.set_info_update_interval(50ms);
+  progress = "abc";
+  // Postpone this information.
+  progress = pair("def", 1.0);
+  CHECK(progress.get_text() == "abc");
+  CHECK(progress.get_percents() == Approx(0.0));
+  CHECK(progress.get_pending_text() == "def");
+  CHECK(progress.get_pending_percents() == Approx(1.0));
+
+  const auto progress_copy = progress;
+  // Pending information must be copied.
+  CHECK(progress_copy.get_text() == "def");
+  CHECK(progress_copy.get_percents() == Approx(1.0));
+
+  // Wait for the pending values to be applied.
+  this_thread::sleep_for(75ms);
+  CHECK(progress.get_text() == "def");
+  CHECK(progress.get_percents() == Approx(1.0));
+  CHECK_FALSE(progress.get_pending_text().has_value());
+  CHECK_FALSE(progress.get_pending_percents().has_value());
+
+  progress.set_info_update_interval({});
+  progress = "xyz";
+  // Percents value must be applied immediately.
+  progress = 100.0;
+  CHECK(progress.get_text() == "xyz");
+  CHECK(progress.get_percents() == Approx(100.0));
 }
