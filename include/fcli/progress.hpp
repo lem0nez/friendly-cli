@@ -239,7 +239,7 @@ namespace fcli {
 
     std::atomic<std::chrono::milliseconds> m_info_update_interval{};
     std::atomic<std::chrono::time_point<std::chrono::steady_clock>>
-        m_next_info_update;
+        m_next_info_update{std::chrono::steady_clock::now()};
     std::optional<std::string> m_pending_text;
     // A negative value means there is no pending percents value.
     std::atomic<double> m_pending_percents{-1.0};

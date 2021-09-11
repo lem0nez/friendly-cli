@@ -74,7 +74,7 @@ TEST_CASE("Update interval of information") {
   Progress progress({}, true, oss);
   progress.show();
 
-  progress.set_info_update_interval(10ms);
+  progress.set_info_update_interval(50ms);
   progress = "abc";
   // Postpone this information.
   progress = pair("def", 1.0);
@@ -89,7 +89,7 @@ TEST_CASE("Update interval of information") {
   CHECK(progress_copy.get_percents() == Approx(1.0));
 
   // Wait for the pending values to be applied.
-  this_thread::sleep_for(15ms);
+  this_thread::sleep_for(75ms);
   CHECK(progress.get_text() == "def");
   CHECK(progress.get_percents() == Approx(1.0));
   CHECK_FALSE(progress.get_pending_text().has_value());
