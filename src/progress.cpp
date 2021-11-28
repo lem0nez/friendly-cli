@@ -179,7 +179,7 @@ void Progress::update() {
       passed_time,
       // Set maximum value to immediately update indicator.
       update_frame_passed_time = milliseconds::max(),
-      update_dots_passed_time;
+      update_dots_passed_time = 0ms;
 
   decltype(Indicator::frames)::const_iterator frame_it;
   // Current number of displayed dots. If text size is more than

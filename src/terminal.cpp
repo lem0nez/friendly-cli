@@ -63,7 +63,7 @@ auto Terminal::find_out_supported_colors() const -> optional<ColorsSupport> {
 }
 
 auto Terminal::getenv(string_view t_name) -> string {
-  const auto val = std::getenv(string(t_name).c_str());
+  const auto* const val = std::getenv(string(t_name).c_str());
 
   if (val == nullptr) {
     return {};

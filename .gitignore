@@ -7,5 +7,7 @@ compile_flags.txt
 # User configuration files.
 .vim/
 .vimrc
+CMakeLists.txt.user
+
 # Saved workflow session.
 .session.vim
