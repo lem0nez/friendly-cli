@@ -1,11 +1,11 @@
-build/
+build
 # Contains compiler-specific flags.
 compile_flags.txt
 # Clang formatting is completely disabled.
 .clang-format
 
 # User configuration files.
-.vim/
+.vim
 .vimrc
 CMakeLists.txt.user
 
